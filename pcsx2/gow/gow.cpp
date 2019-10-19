@@ -10,8 +10,8 @@ ResourceManagers gow::managers;
 
 Core::Core() {
 	core = core;
-	window = new Window();
-	renderer = new Renderer(window);
+	window = new gow::Window();
+	renderer = new gow::Renderer(window);
 
 	managers.Init();
 }

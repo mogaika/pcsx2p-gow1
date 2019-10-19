@@ -1,8 +1,12 @@
 #include "PrecompiledHeader.h"
 
+#include "gow/gow.h"
 #include "gow/glwindow.h"
+#include "gow/gl.h"
 
 #include <GL/glext.h>
+
+#include "../plugins/GSdx/Renderers/OpenGL/PFN_GLLOADER_CPP.h"
 
 using namespace gow;
 
@@ -12,8 +16,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case WM_CLOSE:
         // ShowWindow(hWnd, SW_HIDE);
         // DestroyWindow(hWnd);
-			
-        return 0;
+			return 0;
+			break;
+        case WM_SIZE:
+            if (core && core->Window()) {
+                core->Window()->UpdateViewPort();
+            }
+			return 0;
+            break;
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -159,7 +169,20 @@ void Window::CreateContext(int major, int minor) {
 	DevCon.WriteLn("gow: Opengl vendor: %s", glGetString(GL_VENDOR));
     DevCon.WriteLn("gow: Opengl renderer: %s", glGetString(GL_RENDERER));    
 
+	DevCon.WriteLn("gow: loading opengl methods");    
+	loadGl();
+    DevCon.WriteLn("gow: loaded opengl methods");    
+
+	updateViewPort();
+
 	DetachContext();
+}
+
+void Window::updateViewPort() {
+	RECT size;
+    GetClientRect(window, &size);
+    glViewport(0, 0, size.right, size.bottom);
+	DevCon.WriteLn("size %d %d", size.right, size.bottom);
 }
 
 void Window::AttachContext() {
@@ -191,6 +214,11 @@ void Window::Destroy() {
 
 void Window::SwapBuffers() {
     ::SwapBuffers(display);
+}
+
+void gow::Window::loadGl() {
+#define GL_EXT_LOAD_OPT(name) *(void **)&(name) = GetProcAddress(#name);
+#include "../plugins/GSdx/Window/PFN_WND.h"
 }
 
 Window::Window():

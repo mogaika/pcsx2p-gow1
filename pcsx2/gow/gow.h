@@ -15,6 +15,8 @@ public:
     Core();
     ~Core();
 
+	Window *Window() { return window; }
+    Renderer *Renderer() { return renderer; }
 	void BeginOfFrame();
 	void EndOfFrame();
 };

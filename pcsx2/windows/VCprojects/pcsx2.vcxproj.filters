@@ -160,6 +160,9 @@
     <Filter Include="Gow\resources">
       <UniqueIdentifier>{ccd60b72-3d45-4f14-a602-8b53cf9e2694}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Gow\shaders">
+      <UniqueIdentifier>{fd8e2046-7955-4ddc-9386-ee5609db2f8a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Utilities\folderdesc.txt">
@@ -212,6 +215,12 @@
     </None>
     <None Include="..\..\gui\Dialogs\BaseConfigurationDialog.inl">
       <Filter>AppHost\Dialogs</Filter>
+    </None>
+    <None Include="..\..\gow\shaders\textured_quad.vert">
+      <Filter>Gow\shaders</Filter>
+    </None>
+    <None Include="..\..\gow\shaders\textured_quad.frag">
+      <Filter>Gow\shaders</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -910,7 +919,7 @@
     <ClCompile Include="..\..\gow\renderer.cpp">
       <Filter>Gow</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\gow\txr.cpp">
+    <ClCompile Include="..\..\gow\resources\txr.cpp">
       <Filter>Gow\resources</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1394,6 +1403,9 @@
     </ClInclude>
     <ClInclude Include="..\..\gow\resources\txr.h">
       <Filter>Gow\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\gow\gl.h">
+      <Filter>Gow</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

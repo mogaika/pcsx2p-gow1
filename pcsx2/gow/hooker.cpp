@@ -60,8 +60,8 @@ void Hooker::InitHooks() {
 
     addHook(0x17A9E8, hookIdleStepFrame);
 
-	addHook(0x259670, hookTxrInstanceCtor);
-    addHook(0x259690, hookTxrInstanceDtor);
+	addHook(0x1665D8, hookTxrInstanceCtor);
+    addHook(0x259688, hookTxrInstanceDtor);
 
     DevCon.WriteLn("gow hooker initialized");
 }

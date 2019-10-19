@@ -74,6 +74,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="..\..\gow\shaders\textured_quad.vert" />
+    <None Include="..\..\gow\shaders\textured_quad.frag" />
     <None Include="..\..\Utilities\folderdesc.txt" />
     <None Include="..\..\Docs\License.txt" />
     <None Include="..\..\x86\aVUzerorec.S" />
@@ -177,7 +179,7 @@
     <ClCompile Include="..\..\gow\gow.cpp" />
     <ClCompile Include="..\..\gow\hooker.cpp" />
     <ClCompile Include="..\..\gow\renderer.cpp" />
-    <ClCompile Include="..\..\gow\txr.cpp" />
+    <ClCompile Include="..\..\gow\resources\txr.cpp" />
     <ClCompile Include="..\..\gui\AppGameDatabase.cpp" />
     <ClCompile Include="..\..\gui\AppUserMode.cpp" />
     <ClCompile Include="..\..\gui\Debugger\BreakpointWindow.cpp" />
@@ -445,6 +447,7 @@
     <ClInclude Include="..\..\GameDatabase.h" />
     <ClInclude Include="..\..\Gif_Unit.h" />
     <ClInclude Include="..\..\gow\debugFrame.h" />
+    <ClInclude Include="..\..\gow\gl.h" />
     <ClInclude Include="..\..\gow\glwindow.h" />
     <ClInclude Include="..\..\gow\gow.h" />
     <ClInclude Include="..\..\gow\hooker.h" />
