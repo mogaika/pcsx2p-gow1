@@ -157,6 +157,9 @@
     <Filter Include="Gow">
       <UniqueIdentifier>{85b84d76-0fef-478f-8e86-fd53dc8e1dda}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Gow\resources">
+      <UniqueIdentifier>{ccd60b72-3d45-4f14-a602-8b53cf9e2694}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Utilities\folderdesc.txt">
@@ -907,6 +910,9 @@
     <ClCompile Include="..\..\gow\renderer.cpp">
       <Filter>Gow</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\gow\txr.cpp">
+      <Filter>Gow\resources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Patch.h">
@@ -1382,6 +1388,12 @@
     </ClInclude>
     <ClInclude Include="..\..\gow\renderer.h">
       <Filter>Gow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\gow\utils.h">
+      <Filter>Gow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\gow\resources\txr.h">
+      <Filter>Gow\resources</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

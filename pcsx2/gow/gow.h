@@ -3,6 +3,8 @@
 #include "gow/glwindow.h"
 #include "gow/renderer.h"
 
+#include "gow/resources/txr.h"
+
 namespace gow {
 
 class Core {
@@ -16,5 +18,15 @@ public:
 	void BeginOfFrame();
 	void EndOfFrame();
 };
+
+struct ResourceManagers {
+public:
+    void Init();
+
+	TextureManager *texture;
+};
+
+extern gow::Core *core;
+extern gow::ResourceManagers managers;
 
 } // namespace gow
