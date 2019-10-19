@@ -74,6 +74,9 @@ void iFlushCall(int flushtype);
 void recBranchCall( void (*func)() );
 void recCall( void (*func)() );
 
+typedef void (*execution_hook_t)();
+void addHook(u32 addr, execution_hook_t hook);
+
 namespace R5900{
 namespace Dynarec {
 extern void recDoBranchImm( u32* jmpSkip, bool isLikely = false );

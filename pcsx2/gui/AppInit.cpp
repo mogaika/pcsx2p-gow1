@@ -30,6 +30,8 @@
 #	include "Recording/VirtualPad.h"
 #endif
 
+#include "gow/hooker.h"
+
 #include <wx/cmdline.h>
 #include <wx/intl.h>
 #include <wx/stdpaths.h>
@@ -512,6 +514,9 @@ bool Pcsx2App::OnInit()
 		if( Startup.ForceConsole ) g_Conf->ProgLogBox.Visible = true;
 		OpenProgramLog();
 		AllocateCoreStuffs();
+
+		InitGowHooker();
+
 		if( m_UseGUI ) OpenMainFrame();
 
 

@@ -113,6 +113,25 @@ static void iBranchTest(u32 newpc = 0xffffffff);
 static void ClearRecLUT(BASEBLOCK* base, int count);
 static u32 scaleblockcycles();
 
+static std::map<u32, execution_hook_t> hooks;
+
+void addHook(u32 addr, execution_hook_t hook)
+{
+    hooks[addr] = hook;
+    DevCon.WriteLn("Inserted hook at @0x%x (hook addr @0x%x)", addr, hook);
+}
+
+void encodeHook()
+{
+    auto v = hooks.find(pc);
+    if (v == hooks.end()) {
+        return;
+    }
+
+    iFlushCall(FLUSH_EVERYTHING | FLUSH_PC);
+    xFastCall((void *)v->second);
+}
+
 void _eeFlushAllUnused()
 {
 	u32 i;
@@ -1273,6 +1292,7 @@ void recompileNextInstruction(int delayslot)
 	{
 		encodeBreakpoint();
 		encodeMemcheck();
+        encodeHook();
 	}
 
 	s_pCode = (int *)PSM( pc );

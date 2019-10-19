@@ -154,6 +154,9 @@
     <Filter Include="Recording\gui">
       <UniqueIdentifier>{93e36831-627f-4529-b709-1f4bad398512}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Gow">
+      <UniqueIdentifier>{85b84d76-0fef-478f-8e86-fd53dc8e1dda}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Utilities\folderdesc.txt">
@@ -889,6 +892,21 @@
     <ClCompile Include="..\..\Recording\VirtualPad.cpp">
       <Filter>Recording\gui</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\gow\hooker.cpp">
+      <Filter>Gow</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\gow\debugFrame.cpp">
+      <Filter>Gow</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\gow\glwindow.cpp">
+      <Filter>Gow</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\gow\gow.cpp">
+      <Filter>Gow</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\gow\renderer.cpp">
+      <Filter>Gow</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Patch.h">
@@ -1349,6 +1367,21 @@
     </ClInclude>
     <ClInclude Include="..\..\Recording\VirtualPad.h">
       <Filter>Recording\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\gow\hooker.h">
+      <Filter>Gow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\gow\debugFrame.h">
+      <Filter>Gow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\gow\glwindow.h">
+      <Filter>Gow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\gow\gow.h">
+      <Filter>Gow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\gow\renderer.h">
+      <Filter>Gow</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
