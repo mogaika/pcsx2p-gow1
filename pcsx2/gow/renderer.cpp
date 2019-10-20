@@ -11,7 +11,8 @@ void gow::Renderer::loadShaders() {
 }
 
 Renderer::Renderer(Window *window):
-	window(window) {
+	window(window), 
+	currentPreviewTexture(0){
 	Setup();
 }
 
@@ -113,13 +114,17 @@ void Renderer::EndOfFrame() {
 
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
+	glDepthMask(false);
+	glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	auto texture = managers.texture->GetTexture(0x64a590);
-	if (texture) {
-		renderTexturedQuad(texture->GetGl(0));
-        DevCon.WriteLn("has texture");
-    } else {
-        DevCon.WriteLn("no texture");
+	if (currentPreviewTexture) {
+        auto texture = managers.texture->GetTexture(currentPreviewTexture);
+		if (texture) {
+			renderTexturedQuad(texture->GetGl(0));
+	    } else {
+			DevCon.Error("gow:render:debug Wasn't able to find texture %x", currentPreviewTexture);
+		}
     }
 
     window->SwapBuffers();

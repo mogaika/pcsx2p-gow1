@@ -19,4 +19,6 @@ public:
 	void BeforeFrame();
 };
 
+extern Hooker *hooker;
+
 } // namespace gow

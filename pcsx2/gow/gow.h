@@ -11,6 +11,7 @@ class Core {
 protected:
 	Window *window;
 	Renderer *renderer;
+
 public:
     Core();
     ~Core();

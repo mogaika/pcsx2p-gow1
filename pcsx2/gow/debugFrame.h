@@ -15,15 +15,18 @@ struct stStackAllocatorInfo {
 };
 
 class DebugMemoryMap;
+class DebugTextures;
 
 class DebugFrame : public wxFrame {
 protected:
     wxNotebook *notebook;
 	DebugMemoryMap *tabMemmap;
+    DebugTextures *tabTextures;
 
 public:
     DebugFrame(wxString title);
 	DebugMemoryMap *GetMemoryMap() { return tabMemmap; }
+    DebugTextures *GetTextures() { return tabTextures; }
 };
 
 class DebugMemoryMap : public wxPanel {
@@ -38,6 +41,24 @@ public:
     void AddAllocator(u32 begin, u32 size, char *name);
     void RemoveAllocator(u32 begin);
     DECLARE_EVENT_TABLE()
+};
+
+class DebugTextures : public wxPanel {
+protected:
+    wxListBox *texturesList;
+    wxButton *buttonPreview;
+    wxButton *buttonHidePreview;
+    wxStaticText *staticInfo;
+
+	void updateStaticText();
+public:
+	DebugTextures(wxWindow *parent);
+
+    void OnButtonPreview(wxCommandEvent &event);
+    void OnButtonHidePreview(wxCommandEvent &event);
+
+    void OnLoadedTexture(u32 offset, char *name);
+    void OnUnLoadedTexture(u32 offset);
 };
 
 } // namespace gow

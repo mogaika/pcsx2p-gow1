@@ -17,7 +17,10 @@ class Renderer {
 protected:
 	Window *window;
 
+	u32 currentPreviewTexture;
+
 	void loadShaders();
+    void renderTexturedQuad(GLuint texture);
 public:
 	Renderer(Window *window);
 
@@ -26,7 +29,7 @@ public:
 	void RenderFlashes();
 	void EndOfFrame();
 	void Setup();
-	void renderTexturedQuad(GLuint texture);
+    void PreviewTextureQuad(u32 textureKey = 0) { currentPreviewTexture = textureKey; };
 	
 	Shader shader_textured_quad;
 };

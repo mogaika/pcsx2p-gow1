@@ -3,6 +3,7 @@
 #include "gow/resources/txr.h"
 #include "gow/gow.h"
 #include "gow/gl.h"
+#include "gow/hooker.h"
 
 using namespace gow;
 
@@ -30,7 +31,7 @@ Texture::Texture(u32 offset, char *name) :
 }
 
 u32 palSwizzle(u32 index) {
-    static u32 remap[4] = {0, 2, 1, 3};
+    static const u32 remap[4] = {0, 2, 1, 3};
     u32 blockid = index / 8;
     u32 blockpos = index % 8;
     return blockpos + (remap[blockid % 4] + (blockid / 4) * 4) * 8;
@@ -52,20 +53,9 @@ void Texture::generateTextures(stGfx *pal) {
     // TODO: handle multiple pal case
     u32 palleteSize = pal->width * pal->height;
     auto pallete = new u32[palleteSize];
-    /*
-	auto pallete = new u32[256];
-	for (u32 i = 0; i < 256; i++) {
-        pallete[i] =
-			(((i % 16) * 16) << 0) |
-			((((i / 16) % 16) * 16) << 8) |
-			(((((i / 16) / 16) % 16) * 16) << 16) |
-			(0xff << 24);
-	}
-	*/
-
+    
     u32 pixelsCount = width * height;
     auto imageData = new u32[pixelsCount];
-
 	
 	u32 *paldata = pal->gfxData<u32>(0);
 	if (pal->height != 2) {
@@ -73,9 +63,9 @@ void Texture::generateTextures(stGfx *pal) {
             pallete[palSwizzle(i)] = paldata[i];
         }
 	} else {
-        memcpy(pallete, paldata, palleteSize);
+        memcpy(pallete, paldata, palleteSize * sizeof(u32));
     }
-	
+
 	core->Window()->AttachContext();
 	glGenTextures(imagesCount, &getImageRef(0));
     core->Renderer()->CheckErrors("gen texture");
@@ -167,13 +157,22 @@ void TextureManager::HookInstanceCtor() {
     auto offset = cpuRegs.GPR.n.v0.UL[0];
     auto name = pmemz<char>(cpuRegs.GPR.n.s3);
     auto texture = new Texture(offset, name);
-    textures.insert(std::pair<u32, Texture*>(offset, texture));
+    if (!textures.insert(std::pair<u32, Texture*>(offset, texture)).second) {
+		DevCon.Error("Wasn't able to insert texture: key %x already exists", offset);
+    };
+    hooker->DebugFrame()->GetTextures()->OnLoadedTexture(offset, name);
 }
 
 void TextureManager::HookInstanceDtor() {
-    auto texture = textures.find(cpuRegs.GPR.n.a1.UL[0]);
+    auto offset = cpuRegs.GPR.n.a1.UL[0];
+
+    hooker->DebugFrame()->GetTextures()->OnUnLoadedTexture(offset);
+
+    auto texture = textures.find(offset);
 	if (texture == textures.end()) {
-        DevCon.Error("Wasn't able to find texture to remove: %x", cpuRegs.GPR.n.a1.UL[0]);
+        DevCon.Error("Wasn't able to find texture to remove: %x", offset);
+	} else {
+        DevCon.Error("gow: texture: removing: %x", offset);
 	}
 	delete texture->second;
 	textures.erase(texture);

@@ -29,7 +29,7 @@ struct stGfx {
 
 	template <typename T> T *gfxData(u32 index) { return pmemz<T>(gfxDataOffset + (index + 1) * 0x10 + (index * height * width)); }
 
-	// works only for gfx 
+	// not works for pal 
 	bool isSwizzled() { return !(flags & 1); }
 };
 static_assert(sizeof(stGfx) == 0x58, "gfx size");

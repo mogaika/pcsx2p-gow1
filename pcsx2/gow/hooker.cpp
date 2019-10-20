@@ -8,7 +8,7 @@
 
 using namespace gow;
 
-Hooker *hooker = NULL;
+Hooker *gow::hooker = NULL;
 
 void InitGowHooker() {
 	hooker = new Hooker();
