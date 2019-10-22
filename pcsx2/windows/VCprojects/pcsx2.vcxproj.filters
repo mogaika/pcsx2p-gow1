@@ -222,6 +222,12 @@
     <None Include="..\..\gow\shaders\textured_quad.frag">
       <Filter>Gow\shaders</Filter>
     </None>
+    <None Include="..\..\gow\shaders\flash.frag">
+      <Filter>Gow\shaders</Filter>
+    </None>
+    <None Include="..\..\gow\shaders\flash.vert">
+      <Filter>Gow\shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\Patch.cpp">
@@ -922,6 +928,9 @@
     <ClCompile Include="..\..\gow\resources\txr.cpp">
       <Filter>Gow\resources</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\gow\resources\mesh.cpp">
+      <Filter>Gow\resources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Patch.h">
@@ -1406,6 +1415,9 @@
     </ClInclude>
     <ClInclude Include="..\..\gow\gl.h">
       <Filter>Gow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\gow\resources\mesh.h">
+      <Filter>Gow\resources</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -5,6 +5,8 @@
 
 #include "gow/utils.h"
 
+// #define GOW_TEXTURE_DEBUG
+
 namespace gow {
 
 #pragma pack(push, 1)
@@ -62,6 +64,7 @@ protected:
     stTxr *img;
 	GLsizei width, height;
     bool generated;
+	char name[32];
 
 	GLuint &getImageRef(int index) { return imagesCount == 1 ? _image : _images[index]; };
     void generateTextures(stGfx *pal);
@@ -71,6 +74,7 @@ public:
 	~Texture();
 
 	GLuint GetGl(int index) { return getImageRef(index); }
+    char *GetName() { return name; }
 };
 
 class TextureManager {

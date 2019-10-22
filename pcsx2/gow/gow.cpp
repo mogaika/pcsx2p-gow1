@@ -33,4 +33,5 @@ void gow::Core::EndOfFrame() {
 
 void ResourceManagers::Init() {
 	texture = new TextureManager();
+	mesh = new MeshManager();
 }

@@ -22,6 +22,9 @@ DebugFrame::DebugFrame(wxString title):
 	tabTextures = new DebugTextures(notebook);
     notebook->AddPage(tabTextures, _("Textures"), false);
 
+	tabRenderer = new DebugRenderer(notebook);
+    notebook->AddPage(tabRenderer, _("Renderer"), false);
+
 	SetName(wxT("GoW debug"));
     SetSize(600, 400);
 }
@@ -96,8 +99,7 @@ void gow::DebugTextures::updateStaticText() {
 	staticInfo->SetLabelText(wxString::Format("Total textures: %d", texturesList->GetCount()));
 }
 
-DebugTextures::DebugTextures(wxWindow *parent)
-    :
+DebugTextures::DebugTextures(wxWindow *parent) :
 	wxPanel(parent) {
 
 	wxBoxSizer *sizerVertical = new wxBoxSizer(wxVERTICAL);
@@ -120,7 +122,7 @@ DebugTextures::DebugTextures(wxWindow *parent)
     sizerBottomButtons->Add(buttonHidePreview, 0, wxALL, 5);
 
 	staticInfo = new wxStaticText(this, wxID_ANY, _(""));
-    sizerBottomButtons->Add(staticInfo, 1, wxALL | wxALIGN_CENTER, 5);
+    sizerBottomButtons->Add(staticInfo, 0, wxALL | wxALIGN_CENTER, 5);
 }
 
 void DebugTextures::OnButtonPreview(wxCommandEvent &event) {
@@ -150,4 +152,49 @@ void DebugTextures::OnUnLoadedTexture(u32 offset) {
 			return;
 		}
 	}
+}
+
+
+DebugRenderer::DebugRenderer(wxWindow *parent):
+	wxPanel(parent) {
+    wxBoxSizer *sizerVertical = new wxBoxSizer(wxVERTICAL);
+    this->SetSizer(sizerVertical);
+
+    buttonReloadShaders = new wxButton(this, wxID_ANY, _("Reload shaders"));
+    buttonReloadShaders->Bind(wxEVT_BUTTON, &DebugRenderer::OnButtonReloadShaders, this);
+    sizerVertical->Add(buttonReloadShaders, 0, wxALL, 5);
+
+    textSize1 = new wxTextCtrl(this, wxID_ANY, _("1,0"));
+    textSize1->SetWindowStyle(textSize1->GetWindowStyle() | wxTE_PROCESS_ENTER);
+    textSize1->Bind(wxEVT_COMMAND_TEXT_ENTER, &DebugRenderer::OnTextSize1Change, this);
+    sizerVertical->Add(textSize1, 0, wxALL, 2);
+
+    textSize2 = new wxTextCtrl(this, wxID_ANY, _("0,001953125"));
+    textSize2->SetWindowStyle(textSize2->GetWindowStyle() | wxTE_PROCESS_ENTER);
+    textSize2->Bind(wxEVT_COMMAND_TEXT_ENTER, &DebugRenderer::OnTextSize2Change, this);
+    sizerVertical->Add(textSize2, 0, wxALL, 2);
+}
+
+void DebugRenderer::OnTextSize1Change(wxCommandEvent &event) {
+    double v;
+    if (textSize1->GetValue().ToDouble(&v)) {
+        DevCon.WriteLn("changing size1 to %f", v);
+        core->Renderer()->size1 = v;
+    } else {
+        DevCon.WriteLn("invalid floating %s", textSize1->GetValue());
+    }
+}
+
+void DebugRenderer::OnTextSize2Change(wxCommandEvent &event) {
+    double v;
+    if (textSize2->GetValue().ToDouble(&v)) {
+        DevCon.WriteLn("changing size2 to %f", v);
+        core->Renderer()->size2 = v;
+    } else {
+        DevCon.WriteLn("invalid floating %s", textSize2->GetValue());
+    }
+}
+
+void DebugRenderer::OnButtonReloadShaders(wxCommandEvent &event) {
+    core->Renderer()->ReloadShaders();
 }

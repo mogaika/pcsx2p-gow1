@@ -3,6 +3,7 @@
 #include "wx/frame.h"
 #include "wx/panel.h"
 #include "wx/notebook.h"
+#include "wx/textctrl.h"
 
 #include <map>
 
@@ -16,12 +17,14 @@ struct stStackAllocatorInfo {
 
 class DebugMemoryMap;
 class DebugTextures;
+class DebugRenderer;
 
 class DebugFrame : public wxFrame {
 protected:
     wxNotebook *notebook;
 	DebugMemoryMap *tabMemmap;
     DebugTextures *tabTextures;
+	DebugRenderer *tabRenderer;
 
 public:
     DebugFrame(wxString title);
@@ -59,6 +62,20 @@ public:
 
     void OnLoadedTexture(u32 offset, char *name);
     void OnUnLoadedTexture(u32 offset);
+};
+
+class DebugRenderer : public wxPanel {
+protected:
+	wxButton *buttonReloadShaders;
+    wxTextCtrl *textSize1;
+    wxTextCtrl *textSize2;
+
+public:
+    DebugRenderer(wxWindow *parent);
+
+    void OnTextSize1Change(wxCommandEvent &event);
+    void OnTextSize2Change(wxCommandEvent &event);
+    void OnButtonReloadShaders(wxCommandEvent &event);
 };
 
 } // namespace gow

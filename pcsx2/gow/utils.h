@@ -14,6 +14,11 @@ template <typename T> T *pmem(GPR_reg reg) { return pmem<T>(reg.UL[0]); };
 template <typename T> T *pmemz(GPR_reg reg) { return pmemz<T>(reg.UL[0]); };
 template <typename T> T rmem(GPR_reg reg) { return *pmem<T>(reg); };
 
+template <typename T, typename Q> T align_floor(T v, Q amount) { return (v / static_cast<T>(amount)) * static_cast<T>(amount); }
+template <typename T, typename Q> T align_ceil(T v, Q amount) { return align_floor(v + static_cast<T>(amount) - T(1), amount); }
+
+template <typename T, typename Q> T *pointer_add(T *p, Q amount) { return (T*)(uintptr_t(p) + uintptr_t(amount)); };
+
 static inline u32 revmem(u32 ptr) { return ptr - __ps2_mem_offset; }
 static inline u32 revmem(void *ptr) { return revmem((u32)ptr); }
 

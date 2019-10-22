@@ -4,6 +4,7 @@
 #include "gow/renderer.h"
 
 #include "gow/resources/txr.h"
+#include "gow/resources/mesh.h"
 
 namespace gow {
 
@@ -27,6 +28,7 @@ public:
     void Init();
 
 	TextureManager *texture;
+	MeshManager *mesh;
 };
 
 extern gow::Core *core;

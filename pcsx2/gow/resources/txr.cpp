@@ -11,6 +11,8 @@ Texture::Texture(u32 offset, char *name) :
 	imagesCount(0), generated(false) {
 	img = pmem<stTxr>(offset);
 	
+	strcpy(this->name, name);
+
 	auto gfx = img->gfxInstance();
   
 	width = gfx->width;
@@ -27,7 +29,9 @@ Texture::Texture(u32 offset, char *name) :
         generateTextures(pal);
     }
 
+#ifdef GOW_TEXTURE_DEBUG
 	DevCon.WriteLn("gow: created texture %s %x (%d)", name, img, imagesCount);
+#endif
 }
 
 u32 palSwizzle(u32 index) {
@@ -82,7 +86,6 @@ void Texture::generateTextures(stGfx *pal) {
             }
 		} else {
 			if (gfx->isSwizzled()) {
-                DevCon.WriteLn("index: %x, gfx: %x, txr: %x", pIndex, gfx, img);
                 for (GLsizei y = 0; y < height; y++) {
                     for (GLsizei x = 0; x < width; x++) {
                         *(pPixel++) = pallete[pIndex[gfxUnswizzle(x, y, gfx->width)]];
@@ -170,11 +173,15 @@ void TextureManager::HookInstanceDtor() {
 
     auto texture = textures.find(offset);
 	if (texture == textures.end()) {
+#ifdef GOW_TEXTURE_DEBUG
         DevCon.Error("Wasn't able to find texture to remove: %x", offset);
+#endif
+		return;
 	} else {
+#ifdef GOW_TEXTURE_DEBUG
         DevCon.Error("gow: texture: removing: %x", offset);
+#endif
 	}
 	delete texture->second;
 	textures.erase(texture);
 }
-
