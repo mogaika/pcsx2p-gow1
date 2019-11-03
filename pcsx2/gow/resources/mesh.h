@@ -10,6 +10,8 @@ namespace gow {
 class Mesh;
 class MeshObject;
 
+namespace raw {
+
 #pragma pack(push, 1)
 #pragma warning(push)
 #pragma warning(disable : 4200)
@@ -42,7 +44,7 @@ struct stVifTag {
     u8 num() { return (_tag >> 16) & 0xff; };
     u16 imm() { return _tag & 0xffff; };
 };
-static_assert(sizeof(stVifTag) == 0x4, "mesh vif packet size");
+static_assert(sizeof(stVifTag) == 0x4, "stVifTag size");
 
 struct stDmaTag {
     u64 _tag;
@@ -61,7 +63,32 @@ struct stDmaTag {
     u8 id() { return (_tag >> 28) & 0x7; };
     u32 addr(){ return (_tag >> 32) & 0x7FffFFff; };
 };
-static_assert(sizeof(stDmaTag) == 0x8, "mesh dma packet size");
+static_assert(sizeof(stDmaTag) == 0x8, "stDmaTag size");
+
+struct stMeshPacketMeta {
+	u8 indexesCount;
+	u8 _isLastBlock;
+	gap_t _gap2[2];
+
+	u32 matFlagsCount : 4;
+    u32 indexOrder : 4; // idk actually
+	u32 : 4;
+    u32 indexOverride : 4; // idk actually, corresponed to indexOrder
+	u32 texturing : 4;
+	u32 _unk4_0x14 : 4;
+	u32 : 4;
+    u32 _matFlagsCount2 : 4;
+
+	u32 _matFlags;
+
+	u8 jointIndexes[2];
+	gap_t _gap0xE[1];
+	u8 jointFlag;
+
+	bool isLast() { return _isLastBlock != 0; }
+    u32 matFlag(u32 index) { return (_matFlags >> (index * 4)) & 0xf; }
+};
+static_assert(sizeof(stMeshPacketMeta) == 0x10, "stMeshPacketMeta size");
 
 struct stMeshObject {
 	u16 type;
@@ -89,11 +116,12 @@ struct stMeshObject {
 static_assert(sizeof(stMeshObject) == 0x20, "meshobject size");
 
 struct stMeshGroup {
-	u32 _unk0;
+	float lodDist;
 	u32 objectsCount;
-	u32 _unk8;
+	u32 haveBBoxes;
     u32 objectOffsets[0];
 
+	static const float LOD_MAX;
 	stMeshObject *getObject(u32 index) { return (stMeshObject*) pointer_add(this, objectOffsets[index]); }
 };
 static_assert(sizeof(stMeshGroup) == 0xc, "meshgroup size");
@@ -109,10 +137,7 @@ static_assert(sizeof(stMeshPart) == 0x4, "meshpart size");
 
 struct stMesh {
 	u32 magic;
-	union {
-		u32 meshCommentStart; // used only at start for allocation size detection. we can use this
-		Mesh *pMesh;
-    };
+	u32 meshDataSize;
 	u32 partsCount;
 	gap_t _gap[0x28];
 	u32 unkBoneIndex;
@@ -120,12 +145,13 @@ struct stMesh {
 	u32 partOffsets[0];
 
 	stMeshPart *getPart(u32 index) { return (stMeshPart*)(u32(this) + partOffsets[index]);}
-    Mesh *&refMesh() { return pMesh; }
 };
 static_assert(sizeof(stMesh) == 0x50, "mesh size");
 
 #pragma warning(pop)
 #pragma pack(pop)
+
+} // namespace raw
 
 class MeshObject {
 protected:
@@ -140,6 +166,7 @@ protected:
         GLuint uv;
         u32 uvWidth;
         GLuint rgba;
+        GLuint jointIndexes;
         GLuint normals;
         GLuint element;
         u16 indexesCount;
@@ -163,7 +190,7 @@ protected:
 
 	// key - source packet offset (relative to stMeshObject)
 	// value - gl buffer that stores data on this offset (can be vertex/uv/normal/indexes)
-	std::unordered_map<stVifTag*, GLuint> buffers;
+    std::unordered_map<raw::stVifTag *, GLuint> buffers;
 
     // represents dma programs
 	// keys - instance/layer index
@@ -171,15 +198,15 @@ protected:
     typedef std::vector<stProgram> dma_program_t;
 
     std::vector<dma_program_t> arrays; 
-	stMeshObject *object;
+	raw::stMeshObject *object;
 
 	// returns vif data size
-    u32 decompileVifUnpack(stVifTag *vif, stDecomileState& state);
-	void decompileVifProgram(stVifTag *vifStart, stVifTag *vifEnd, dma_program_t &program);
-    void decompileDmaProgram(stDmaTag *dmaProgram, dma_program_t &program);
+    u32 decompileVifUnpack(raw::stVifTag *vif, stDecomileState& state);
+    void decompileVifProgram(raw::stVifTag *vifStart, raw::stVifTag *vifEnd, dma_program_t &program);
+    void decompileDmaProgram(raw::stDmaTag *dmaProgram, dma_program_t &program);
     void decompilePackets();
 public:
-	MeshObject(stMeshObject *object);
+    MeshObject(raw::stMeshObject *object);
 	~MeshObject();
 
 	std::vector<dma_program_t> &GetPrograms() { return arrays; }
@@ -188,7 +215,7 @@ public:
 class Mesh {
 protected:
 	u32 serverOffset;
-	stMesh *mesh;
+	raw::stMesh *mesh;
 
 public:
     Mesh(u32 offset, u32 serverOffset);
@@ -208,6 +235,5 @@ public:
     void HookInstanceCtor(u32 serverOffset);
     void HookServerDtor();
 };
-
 
 } // namespace gow

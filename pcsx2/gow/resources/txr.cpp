@@ -9,7 +9,7 @@ using namespace gow;
 
 Texture::Texture(u32 offset, char *name) :
 	imagesCount(0), generated(false) {
-	img = pmem<stTxr>(offset);
+    img = pmem<raw::stTxr>(offset);
 	
 	strcpy(this->name, name);
 
@@ -50,7 +50,7 @@ u32 gfxUnswizzle(u32 x, u32 y, u32 width) {
 	return blocklocation + columnlocation + bytenum;
 }
 
-void Texture::generateTextures(stGfx *pal) {
+void Texture::generateTextures(raw::stGfx *pal) {
     auto gfx = img->gfxInstance();
 
     DevCon.WriteLn("gow: generating texture for %x", img);
@@ -100,16 +100,29 @@ void Texture::generateTextures(stGfx *pal) {
 
 		glBindTexture(GL_TEXTURE_2D, getImageRef(i));
         core->Renderer()->CheckErrors("bind texture");
-		if ((img->flags1 >> 16 & 0xff) == 0x51) {
-			// ui textures
+
+		auto flags = img->flags1;
+		if (((flags >> 20) & 0x3) == 1) {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		} else {
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         }
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        if (((flags >> 22) & 0x3) == 1) {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        } else {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        }
+		if (((flags >> 15) & 0x1) == 1) {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		} else {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+        }
+        if (((flags >> 16) & 0x1) == 1) {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        } else {
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        }
+
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);
         core->Renderer()->CheckErrors("glTexImage2D");
 
@@ -134,7 +147,7 @@ void Texture::generateTextures(stGfx *pal) {
 	delete[] pallete;
 }
 
-void Texture::generateMip(stGfx *pal) {
+void Texture::generateMip(raw::stGfx *pal) {
 	if (!img->palInstanceOffset) {
 		generateTextures(pal);
 	}
@@ -163,13 +176,13 @@ void TextureManager::HookInstanceCtor() {
     if (!textures.insert(std::pair<u32, Texture*>(offset, texture)).second) {
 		DevCon.Error("Wasn't able to insert texture: key %x already exists", offset);
     };
-    hooker->DebugFrame()->GetTextures()->OnLoadedTexture(offset, name);
+    hooker->DebugFrame().GetTextures().OnLoadedTexture(offset, name);
 }
 
 void TextureManager::HookInstanceDtor() {
     auto offset = cpuRegs.GPR.n.a1.UL[0];
 
-    hooker->DebugFrame()->GetTextures()->OnUnLoadedTexture(offset);
+    hooker->DebugFrame().GetTextures().OnUnLoadedTexture(offset);
 
     auto texture = textures.find(offset);
 	if (texture == textures.end()) {

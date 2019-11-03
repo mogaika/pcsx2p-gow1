@@ -9,12 +9,14 @@ using namespace gow;
 void gow::Renderer::loadShaders() {
     shader_textured_quad.Load("../../gow/shaders/textured_quad.vert", "../../gow/shaders/textured_quad.frag");
 	shader_flash.Load("../../gow/shaders/flash.vert", "../../gow/shaders/flash.frag");
+    shader_mesh.Load("../../gow/shaders/mesh.vert", "../../gow/shaders/mesh.frag");
 }
 
 Renderer::Renderer(Window *window):
 	window(window), 
 	reloadShadersRequest(0),
-	currentPreviewTexture(0) {
+	currentPreviewTexture(0),
+	dumpFrame(false) {
 	size1 = 1.0;
     // size2 = 0.001953125;
     size2 = 1.0;
@@ -27,7 +29,6 @@ void Renderer::CheckErrors(char *phase) {
         DevCon.Error("gow: OPENGL phase '%s' ERROR 0x%x %d", phase, error, error);
     }
 }
-
 
 void initializeQuad();
 void Renderer::Setup() {
@@ -128,14 +129,22 @@ void Renderer::RenderFlashes() {
     auto useTextureuniform = shader_flash.GetUniformLocation("uUseTexture");
     auto blendColoruniform = shader_flash.GetUniformLocation("uBlendColor");
 
-	float blendColors[4];
+	float blendColors[4] = {1.0, 1.0, 1.0, 1.0};
+
+	if (dumpFrame) {
+		DevCon.Error("[frame 0x%.7x Flashes start", offsets::uFrameCounter);
+	}
+
+	glUniform4f(blendColoruniform, 1.0, 1.0, 1.0, 1.0);
 
 	int renderedFlashes = 0;
-    for (auto flash = pmemz<stRenderFlashUIBase>(cpuRegs.GPR.n.s5); flash != 0; flash = flash->next()) {
-        renderedFlashes++;
+	int renderedCommands = 0;
+    for (auto flash = pmemz<raw::stRenderFlashUIBase>(cpuRegs.GPR.n.s5); flash != 0; flash = (raw::stRenderFlashUIBase*) flash->next()) {
+        renderedCommands++;
 		switch (flash->type) {
             case 0: {
-                auto draw = (stRenderFlashUIDraw *)flash;
+                renderedFlashes++;
+                auto draw = (raw::stRenderFlashUIDraw *)flash;
                 auto matrix = draw->matrix();
 
 				auto flpData2 = draw->flpRawData2();
@@ -145,35 +154,15 @@ void Renderer::RenderFlashes() {
 				auto part = mesh->getPart(flpData2->meshPartIndex);
 				auto group = part->getGroup(0);
 
-				/*
-				for (int i = 0; i < 16; i += 4) {
-                    if (i == 0) {
-                        DevCon.WriteLn("matrix[0x%.8x]   %f   %f   %f   %f",  matrix, matrix[i], matrix[i + 1], matrix[i + 2], matrix[i + 3]);
-                    } else {
-                        DevCon.WriteLn("      [0x%.8x]   %f   %f   %f   %f", matrix, matrix[i], matrix[i + 1], matrix[i + 2], matrix[i + 3]);
-                    }
-                }
-				*/
-				//matrix[0] = 1.0;
-				//matrix[5] = 1.0;
-				//matrix[10] = 1.0;
-				//matrix[12] = 1.0;
-				//matrix[13] = 1.0;
-				//matrix[14] = -1000.0;
-                //matrix[15] = 1.0;
-               /* for (int i = 0; i < 16; i += 4) {
-                    if (i == 0) {
-                        DevCon.WriteLn("MATRIX[0x%.8x]    %f   %f   %f   %f", matrix, matrix[i], matrix[i + 1], matrix[i + 2], matrix[i + 3]);
-                    } else {
-                        DevCon.WriteLn("      [0x%.8x]    %f   %f   %f   %f", matrix, matrix[i], matrix[i + 1], matrix[i + 2], matrix[i + 3]);
-                    }
-                }*/
-
 				CheckErrors("gow: render: preuniform");
 				glUniform1f(size1uniform, size1);
                 glUniform1f(size2uniform, size2);
                 CheckErrors("gow: render: postuniform");
                 glUniformMatrix4fv(matrixUniform, 1, GL_FALSE, matrix);
+				
+				if (dumpFrame) {
+                    DevCon.WriteLn("draw mesh 0x%x (%d)", flpData2->meshPartIndex, flpData2->meshPartIndex);
+                }
 
 				for (u32 iObject = 0; iObject < group->objectsCount; iObject++) {
                     auto flpDataSub2 = flpData2->getData2Sub1(iObject);
@@ -189,25 +178,31 @@ void Renderer::RenderFlashes() {
 						glUniform1i(useTextureuniform, 1);
                         glBindTexture(GL_TEXTURE_2D, texture->GetGl(0));
 
-						glUniform4f(blendColoruniform,
-							blendColors[0],
-							blendColors[1],
-							blendColors[2],
-							blendColors[3]);
-
+						glUniform4f(blendColoruniform, blendColors[0], blendColors[1], blendColors[2], blendColors[3]);
+                        if (dumpFrame) {
+                            DevCon.WriteLn("draw textured %f %f %f %f",
+								blendColors[0], blendColors[1], blendColors[2], blendColors[3]);
+                        }
                     } else {
                         glBindTexture(GL_TEXTURE_2D, 0);
                         glUniform1i(useTextureuniform, 0);
 
 						const float u8tofloat = (1.0f / 255.0f);
+                        float fBlendColors[4];
 
-						float fblendColors[4];
-						for (int i = 0; i < 4; i++) {
-							fblendColors[i] =  blendColors[i] * float(((u8 *)(&flpDataSub2->blendColor))[i]) * u8tofloat;
+						// flpDataSub2->blendColor has inverted order 
+						fBlendColors[0] = blendColors[0] * float(flpDataSub2->blendColor[2]) * u8tofloat;
+                        fBlendColors[1] = blendColors[1] * float(flpDataSub2->blendColor[1]) * u8tofloat;
+                        fBlendColors[2] = blendColors[2] * float(flpDataSub2->blendColor[0]) * u8tofloat;
+                        fBlendColors[3] = blendColors[3] * float(flpDataSub2->blendColor[3]) * u8tofloat;
+
+                        glUniform4f(blendColoruniform, fBlendColors[0], fBlendColors[1], fBlendColors[2], fBlendColors[3]);
+
+						if (dumpFrame) {
+                            DevCon.WriteLn("draw untextured %f %f %f %f (0x%02x 0x%02x 0x%02x 0x%02x)",
+								fBlendColors[0], fBlendColors[1], fBlendColors[2], fBlendColors[3],
+								flpDataSub2->blendColor[0], flpDataSub2->blendColor[1], flpDataSub2->blendColor[2], flpDataSub2->blendColor[3]);
                         }
-
-						glUniform4f(blendColoruniform,
-							fblendColors[0], fblendColors[1], fblendColors[2], fblendColors[3]);
                     }
 
 					auto meshObject = object->refMeshObject();
@@ -223,20 +218,17 @@ void Renderer::RenderFlashes() {
 						glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vao->ebo);
                         CheckErrors("gow: render: flp: before draw elements");
                         glDrawElements(GL_TRIANGLES, vao->indexesCount, GL_UNSIGNED_SHORT, 0);
-						/*
-                        glBindVertexArray(quad_vao);
-                        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quad_ebo);
-                        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-						*/
 						// DevCon.WriteLn("gow: render: flp: rendered vao 0x%x", vao->first);
 						CheckErrors("gow: render: flp: draw elements");
                     }
 				}
 				} break;
             case 1: {
-                auto color = (stRenderFlashUISetColor*) flash;
-                // const float convu16tofloat = (1.0 / 65535.0);
+                auto color = (raw::stRenderFlashUISetColor*) flash;
                 const float convu16tofloat = (1.0f / 256.0f);
+                if (dumpFrame) {
+                    DevCon.WriteLn("set color 0x%03x 0x%03x 0x%03x 0x%03x", color->color[0], color->color[1], color->color[2], color->color[3]);
+                }
                 blendColors[0] = float(color->color[0]) * convu16tofloat;
                 blendColors[1] = float(color->color[1]) * convu16tofloat;
                 blendColors[2] = float(color->color[2]) * convu16tofloat;
@@ -248,7 +240,37 @@ void Renderer::RenderFlashes() {
 				break;
 		}
 	}
-    // DevCon.Error("RENDERED %d FLASHES", renderedFlashes);
+
+    if (dumpFrame) {
+        DevCon.Error("[frame 0x%.7x commands count:%d flashes count: %d", offsets::uFrameCounter, renderedCommands, renderedFlashes);
+    }
+
+	window->DetachContext();
+}
+
+void Renderer::RenderStatic() {
+	window->AttachContext();
+
+	glEnable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDepthMask(true);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glActiveTexture(GL_TEXTURE0);
+
+	if (dumpFrame) {
+        DevCon.Error("[frame 0x%.7x Static start", offsets::uFrameCounter);
+    }
+
+	int renderedFlashes = 0;
+	auto firstFlash = pmemz<raw::stRenderFlashStatic>(cpuRegs.GPR.n.sp.UL[0] + 0x50);
+
+    for (auto flash = firstFlash; flash != 0; flash = (raw::stRenderFlashStatic *)flash->next()) {
+        renderedFlashes++;
+    }
+	if (dumpFrame) {
+		DevCon.Error("[frame 0x%.7x Static elements: %d", offsets::uFrameCounter, renderedFlashes);
+    }
 
 	window->DetachContext();
 }
@@ -276,6 +298,7 @@ void Renderer::EndOfFrame() {
 		}
     }
 
+	dumpFrame = false;
     window->SwapBuffers();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

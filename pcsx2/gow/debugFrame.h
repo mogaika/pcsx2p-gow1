@@ -4,6 +4,7 @@
 #include "wx/panel.h"
 #include "wx/notebook.h"
 #include "wx/textctrl.h"
+#include "wx/treectrl.h"
 
 #include <map>
 
@@ -18,6 +19,7 @@ struct stStackAllocatorInfo {
 class DebugMemoryMap;
 class DebugTextures;
 class DebugRenderer;
+class DebugWadEvents;
 
 class DebugFrame : public wxFrame {
 protected:
@@ -25,11 +27,13 @@ protected:
 	DebugMemoryMap *tabMemmap;
     DebugTextures *tabTextures;
 	DebugRenderer *tabRenderer;
+	DebugWadEvents *tabWadEvents;
 
 public:
     DebugFrame(wxString title);
-	DebugMemoryMap *GetMemoryMap() { return tabMemmap; }
-    DebugTextures *GetTextures() { return tabTextures; }
+	DebugMemoryMap &GetMemoryMap() { return *tabMemmap; }
+    DebugTextures &GetTextures() { return *tabTextures; }
+    DebugWadEvents &GetWadEvents() { return *tabWadEvents; }
 };
 
 class DebugMemoryMap : public wxPanel {
@@ -69,6 +73,7 @@ protected:
 	wxButton *buttonReloadShaders;
     wxTextCtrl *textSize1;
     wxTextCtrl *textSize2;
+    wxButton *buttonDumpFrame;
 
 public:
     DebugRenderer(wxWindow *parent);
@@ -76,6 +81,17 @@ public:
     void OnTextSize1Change(wxCommandEvent &event);
     void OnTextSize2Change(wxCommandEvent &event);
     void OnButtonReloadShaders(wxCommandEvent &event);
+    void OnButtonDumpFrame(wxCommandEvent &event);
+};
+
+class DebugWadEvents : public wxPanel {
+protected:
+	wxListBox *eventsList;
+
+public:
+	DebugWadEvents(wxWindow *parent);
+	
+	void OnNewEvent(u16 eventId, u16 param1, u32 param2, char *name);
 };
 
 } // namespace gow

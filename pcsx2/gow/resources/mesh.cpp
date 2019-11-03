@@ -6,21 +6,22 @@
 
 using namespace gow;
 
+const float raw::stMeshGroup::LOD_MAX = -34359738368.0f;
+
 Mesh::Mesh(u32 offset, u32 serverOffset):
 	serverOffset(serverOffset) {
-	mesh = pmem<stMesh>(offset);
-	mesh->refMesh() = this;
+    mesh = pmem<raw::stMesh>(offset);
 
-	DevCon.WriteLn("mesh 0x%x", mesh);
+	//DevCon.WriteLn("mesh 0x%x", mesh);
 	for (u32 i = 0; i < mesh->partsCount; i++) {
 		auto part = mesh->getPart(i);
-		DevCon.WriteLn("part 0x%x", part);
+		//DevCon.WriteLn("part 0x%x", part);
 		for (u32 j = 0; j < part->groupsCount; j++) {
 			auto group = part->getGroup(j);
-            DevCon.WriteLn("group 0x%x", group);
+           // DevCon.WriteLn("group 0x%x", group);
 			for (u32 k = 0; k < group->objectsCount; k++) {
 				auto object = group->getObject(k);
-                DevCon.WriteLn("object 0x%x", object);
+                //DevCon.WriteLn("object 0x%x", object);
 				object->refMeshObject() = new MeshObject(object);
 			}
 		}
@@ -40,7 +41,7 @@ Mesh::~Mesh() {
     }
 }
 
-MeshObject::MeshObject(stMeshObject *object):
+MeshObject::MeshObject(raw::stMeshObject *object):
 	object(object) {
     core->Window()->AttachContext();
 	decompilePackets();
@@ -68,8 +69,7 @@ MeshObject::stProgram MeshObject::stDecomileState::getProgram() {
     //  1 - uv
     //  2 - color
     //  3 - normal
-    //  4 - joint1
-    //  5 - joint2
+    //  4 - joints
 
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
@@ -98,13 +98,18 @@ MeshObject::stProgram MeshObject::stDecomileState::getProgram() {
         glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, NULL);
         glEnableVertexAttribArray(2);
 	}
-	/*
+	
     if (normals) {
         glBindBuffer(GL_ARRAY_BUFFER, normals);
-        glVertexAttribPointer(4, 3, GL_BYTE, GL_TRUE, 0, NULL);
+        glVertexAttribPointer(3, 3, GL_BYTE, GL_TRUE, 0, NULL);
         glEnableVertexAttribArray(3);
 	}
-	*/
+
+	if (jointIndexes) {
+        glBindBuffer(GL_ARRAY_BUFFER, jointIndexes);
+        glVertexAttribPointer(4, 2, GL_BYTE, GL_FALSE, 0, NULL);
+        glEnableVertexAttribArray(4);
+    }
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element);
     core->Renderer()->CheckErrors("bind array element buffer");
@@ -122,7 +127,7 @@ MeshObject::stProgram MeshObject::stDecomileState::getProgram() {
 	return prog;
 }
 
-u32 MeshObject::decompileVifUnpack(stVifTag *vif, stDecomileState &state) {
+u32 MeshObject::decompileVifUnpack(raw::stVifTag *vif, stDecomileState &state) {
 	u8 cmd = vif->cmd();
 
     u32 componentsCount = ((u32(cmd) >> 2) & 0x3) + 1; // elements per vertex
@@ -146,18 +151,43 @@ u32 MeshObject::decompileVifUnpack(stVifTag *vif, stDecomileState &state) {
         DevCon.WriteLn(line);
 	}
 	*/
+	bool handled = false;
 
     if (width == 32 && componentsCount == 4) {
         if (target == 0x000 || target == 0x155 || target == 0x2ab) { // vmta
+            handled = true;
             // DevCon.WriteLn("              vmta");
-			/*
-			u32 metasCount = dataSize / sizeof(metasCount);
-			auto metaEnd = metaStart + metasCount;
+			
+			// since vertex amount stored in byte we can't have more then 256 vertexes and 256*2 jointsIndexes
+            static u8 jointIndexesBuffer[512];
+			int jointBufferIndex = 0;
 
-            for (auto meta = metaStart; meta != metaEnd; meta++) {}
-			*/
+			u32 metasCount = dataSize / sizeof(raw::stMeshPacketMeta);
+            for (auto meta = (raw::stMeshPacketMeta *)data; ; meta++) {
+                for (u8 i = 0; i < meta->indexesCount; i++) {
+                    jointIndexesBuffer[jointBufferIndex++] = meta->jointIndexes[0] >> 2;
+                    jointIndexesBuffer[jointBufferIndex++] = meta->jointIndexes[1] >> 4;
 
+#ifndef NDEBUG
+                    if (jointBufferIndex >= sizeof(jointIndexesBuffer)/sizeof(jointIndexesBuffer[0])) {
+                        DevCon.Error("JOINT INDEX BUFFER OVERFLOW: 0x%x", jointBufferIndex);
+                    }
+#endif
+				}
+				if (meta->isLast()) {
+					break;
+				}
+			}
+			
+			GLuint buffer;
+            glGenBuffers(1, &buffer);
+            glBindBuffer(GL_ARRAY_BUFFER, buffer);
+            glBufferData(GL_ARRAY_BUFFER, jointBufferIndex * sizeof(u8), jointIndexesBuffer, GL_STATIC_DRAW);
+			state.jointIndexes = buffer;
+
+			buffers[vif] = buffer;
         } else { // bndr
+            handled = true;
             // DevCon.WriteLn("              bndr");
         }
 	} else {
@@ -170,10 +200,11 @@ u32 MeshObject::decompileVifUnpack(stVifTag *vif, stDecomileState &state) {
 
 		if (componentsCount == 4) {
 			if (width == 16) { // position int16[4]
+                handled = true;
                 state.xyzw = buffer;
-				 DevCon.WriteLn("              pos");
-                // since vertex amount stored in byte we can't have more then 256 vertexes and 256*3-6 indexes respectively
-				static u16 indexBuffer[4096]; 
+				 //DevCon.WriteLn("              pos");
+                // since vertex amount stored in byte we can't have more then 256 vertexes and 256*3 indexes respectively
+				static u16 indexBuffer[1024]; 
                 u16 *pIndex = &indexBuffer[0];
 
 				u16 vertexCount = dataSize / (sizeof(u16) * 4);
@@ -184,8 +215,15 @@ u32 MeshObject::decompileVifUnpack(stVifTag *vif, stDecomileState &state) {
 						*(pIndex++) = iVertex;
                         *(pIndex++) = iVertex - 1;
                         *(pIndex++) = iVertex - 2;
+#ifndef NDEBUG
+                        if (uintptr_t(pIndex) >= uintptr_t(indexBuffer) + sizeof(indexBuffer)) {
+                            DevCon.Error("INDEX BUFFER OVERFLOW: 0x%x", (u32(pIndex) - u32(indexBuffer))/sizeof(indexBuffer[0]));
+						}
+#endif
 					}
 				}
+
+				
                 /*
                 for (auto p = indexBuffer; p < pIndex;) {
                     wxString line;
@@ -210,44 +248,52 @@ u32 MeshObject::decompileVifUnpack(stVifTag *vif, stDecomileState &state) {
 				state.element = elementBuffer;
                 state.indexesCount = indexesCount;
 			} else if (width == 8) { // color uint8[4]
+                handled = true;
                 state.rgba = buffer;
 				// DevCon.WriteLn("              color");
 			}
 		} else if (componentsCount == 3) {
 			if (width == 8) { // normals int8[3]
+                handled = true;
                 state.normals = buffer;
 				// DevCon.WriteLn("              norm");
 			}
 		} else {  // uv int16 | int32
+            handled = true;
             // DevCon.WriteLn("              uv %d", width);
             state.uv = buffer; 
 			state.uvWidth = width;
 		}
     }
+
+	if (!handled) {
+		DevCon.Error("UNHANDLED VIF PACKET %x", vif);
+	}
+
 	core->Renderer()->CheckErrors("vif unpack parsed");
 	return dataSize;
 }
 
-void MeshObject::decompileVifProgram(stVifTag *vifStart, stVifTag *vifEnd, dma_program_t &program) {
+void MeshObject::decompileVifProgram(raw::stVifTag *vifStart, raw::stVifTag *vifEnd, dma_program_t &program) {
     stDecomileState state;
 	state.reset();
 
-	for (stVifTag *vif = vifStart; vif != vifEnd; vif++) {
+	for (raw::stVifTag *vif = vifStart; vif != vifEnd; vif++) {
 		auto cmd = vif->cmd();
         // DevCon.WriteLn("vif 0x%x cmd 0x%x", vif, cmd);
 		if (cmd > 0x60) {
 			// vif unpack
 			// create vbo/ebo
             vif = pointer_add(vif, align_ceil(decompileVifUnpack(vif, state), 4));
-		} else if (cmd == stVifTag::CMD_MSCAL) {
+        } else if (cmd == raw::stVifTag::CMD_MSCAL) {
 			// call rendering program
 			// create vao
-			DevCon.WriteLn("created program for vif 0x%x", vif);
+			//DevCon.WriteLn("created program for vif 0x%x", vif);
 			program.push_back(state.getProgram());
 			state.reset();
-		} else if (cmd == stVifTag::CMD_STROW) {
+        } else if (cmd == raw::stVifTag::CMD_STROW) {
             vif = pointer_add(vif, 0x10);
-        } else if (cmd == stVifTag::CMD_NOP || cmd == stVifTag::CMD_STCYCL || cmd == stVifTag::CMD_STMOD) {
+        } else if (cmd == raw::stVifTag::CMD_NOP || cmd == raw::stVifTag::CMD_STCYCL || cmd == raw::stVifTag::CMD_STMOD) {
             // ignore
 		} else {
 			DevCon.Error("gow: mesh: Unknown vif tag cmd 0x%x (0x%x) (0x%x)", vif->cmd(), vif->_tag, vif);
@@ -259,25 +305,25 @@ void MeshObject::decompileVifProgram(stVifTag *vifStart, stVifTag *vifEnd, dma_p
     }
 }
 
-void  MeshObject::decompileDmaProgram(stDmaTag *dmaProgram, dma_program_t &program) {
-	for (stDmaTag *tag = dmaProgram;; tag = pointer_add(tag, 0x10)) {
+void  MeshObject::decompileDmaProgram(raw::stDmaTag *dmaProgram, dma_program_t &program) {
+    for (raw::stDmaTag *tag = dmaProgram;; tag = pointer_add(tag, 0x10)) {
 		switch (tag->id()) {
-            case stDmaTag::ID_RET:
+            case raw::stDmaTag::ID_RET:
 				return;
-            case stDmaTag::ID_REF: {
-					stVifTag *vifProgramBegin = pmem<stVifTag>(tag->addr());
-					stVifTag *vifProgramEnd = pointer_add(vifProgramBegin, tag->qwc() * 0x10);
+            case raw::stDmaTag::ID_REF: {
+					raw::stVifTag *vifProgramBegin = pmem<raw::stVifTag>(tag->addr());
+					raw::stVifTag *vifProgramEnd = pointer_add(vifProgramBegin, tag->qwc() * 0x10);
 
-					DevCon.Error("gow: mesh: dma tag 0x%x (0x%x) (0x%x) vif prog 0x%x:0x%x",
-								 tag->id(), tag->_tag, tag, vifProgramBegin, vifProgramEnd);
+					//DevCon.Error("gow: mesh: dma tag 0x%x (0x%x) (0x%x) vif prog 0x%x:0x%x",
+					//			 tag->id(), tag->_tag, tag, vifProgramBegin, vifProgramEnd);
 
 					decompileVifProgram(vifProgramBegin, vifProgramEnd, program);
 					static int totalvao = 0;
 					totalvao += program.size();
                     DevCon.Error("created vao count %d (total: %d)", program.size(), totalvao);
-					for (auto i = program.begin(); i != program.end(); i++) {
-						DevCon.WriteLn("vao 0x%x", i->vao);
-					}
+					//for (auto i = program.begin(); i != program.end(); i++) {
+					//	DevCon.WriteLn("vao 0x%x", i->vao);
+					//}
 				}
 				break;
             default:
@@ -288,14 +334,14 @@ void  MeshObject::decompileDmaProgram(stDmaTag *dmaProgram, dma_program_t &progr
 }
 
 void MeshObject::decompilePackets() {
-    DevCon.WriteLn("decompiling object 0x%x", object);
+    // DevCon.WriteLn("decompiling object 0x%x", object);
 	for (u32 iLayer = 0; iLayer < object->textureLayersCount; iLayer++) {
 		for (u32 iInstance = 0; iInstance < object->instancesCount; iInstance++) {
-            DevCon.WriteLn("         layer 0x%x instance 0x%x", iLayer, iInstance);
+           // DevCon.WriteLn("         layer 0x%x instance 0x%x", iLayer, iInstance);
 
 			auto dmaTag = pointer_add(object->dmaTags, iLayer * iInstance * 0x10);
 
-			DevCon.WriteLn("         dma prog offset 0x%x", dmaTag);
+			//DevCon.WriteLn("         dma prog offset 0x%x", dmaTag);
 			dma_program_t program;
             decompileDmaProgram(dmaTag, program);
 			arrays.push_back(program);
@@ -311,9 +357,11 @@ Mesh *MeshManager::GetMesh(u32 offset) {
 void MeshManager::HookInstanceCtor(u32 serverOffset) {
     auto offset = cpuRegs.GPR.n.s0.UL[0];
     auto name = pmemz<char>(cpuRegs.GPR.n.s3);
-    if (strcmp(name, "Shell_0") && strcmp(name, "HUD_0")) {
+    /*
+	if (strcmp(name, "Shell_0") && strcmp(name, "HUD_0")) {
         return;
     }
+	*/
     auto mesh = new Mesh(offset, serverOffset);
     if (!meshes.insert(std::pair<u32, Mesh *>(offset, mesh)).second) {
 		DevCon.Error("Wasn't able to insert mesh: key %x already exists", offset);

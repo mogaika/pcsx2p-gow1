@@ -38,12 +38,12 @@ void Hooker::BeforeFrame() {
 void hookCStackAllocatorCtor() {
     u32 size = cpuRegs.GPR.n.a1.UL[0];
     char *name = pmem<char>(cpuRegs.GPR.n.a2);
-	hooker->DebugFrame()->GetMemoryMap()->AddAllocator(cpuRegs.GPR.n.a0.UL[0], size, name);
+	hooker->DebugFrame().GetMemoryMap().AddAllocator(cpuRegs.GPR.n.a0.UL[0], size, name);
     hooker->HaveUpdates();
 }
 
 void hookCStackAllocatorDtor() {
-    hooker->DebugFrame()->GetMemoryMap()->RemoveAllocator(cpuRegs.GPR.n.a0.UL[0]);
+    hooker->DebugFrame().GetMemoryMap().RemoveAllocator(cpuRegs.GPR.n.a0.UL[0]);
     hooker->HaveUpdates();
 }
 
@@ -59,6 +59,14 @@ void hookMeshInstanceCtor() { managers.mesh->HookInstanceCtor(meshLoadingServer)
 void hookMeshServerDtor() { managers.mesh->HookServerDtor(); }
 
 void hookRenderFlash() { core->Renderer()->RenderFlashes(); }
+
+void hookRenderStatic() { core->Renderer()->RenderStatic(); }
+
+void hookWadEventAdded() {
+    hooker->DebugFrame().GetWadEvents().OnNewEvent(
+		cpuRegs.GPR.n.a0.US[0], cpuRegs.GPR.n.a1.US[0],
+        cpuRegs.GPR.n.a2.UL[0], pmemz<char>(cpuRegs.GPR.n.a3));
+}
 
 void Hooker::InitHooks() {
 	DevCon.WriteLn("gow hooker initializing");
@@ -76,6 +84,10 @@ void Hooker::InitHooks() {
 	addHook(0x1573E8, hookMeshServerDtor); // a0 - pServer
 
 	addHook(0x146354, hookRenderFlash); // s5 - pFlash (first element of forward linked list)
+
+	addHook(0x165B14, hookRenderStatic); // 0x50($sp) - pFlash
+
+	addHook(0x1BB0F8, hookWadEventAdded);
 
     DevCon.WriteLn("gow hooker initialized");
 }

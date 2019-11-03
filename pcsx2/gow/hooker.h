@@ -14,7 +14,7 @@ public:
     Hooker();
 
 	void HaveUpdates() { haveUpdates = true; }
-    DebugFrame *DebugFrame() { return debugFrame; }
+    DebugFrame &DebugFrame() { return *debugFrame; }
     void InitHooks();
 	void BeforeFrame();
 };

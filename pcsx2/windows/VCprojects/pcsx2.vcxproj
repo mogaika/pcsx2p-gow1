@@ -76,6 +76,8 @@
   <ItemGroup>
     <None Include="..\..\gow\shaders\flash.frag" />
     <None Include="..\..\gow\shaders\flash.vert" />
+    <None Include="..\..\gow\shaders\mesh.frag" />
+    <None Include="..\..\gow\shaders\mesh.vert" />
     <None Include="..\..\gow\shaders\textured_quad.vert" />
     <None Include="..\..\gow\shaders\textured_quad.frag" />
     <None Include="..\..\Utilities\folderdesc.txt" />
@@ -455,7 +457,9 @@
     <ClInclude Include="..\..\gow\gow.h" />
     <ClInclude Include="..\..\gow\hooker.h" />
     <ClInclude Include="..\..\gow\renderer.h" />
+    <ClInclude Include="..\..\gow\resources\flp.h" />
     <ClInclude Include="..\..\gow\resources\mesh.h" />
+    <ClInclude Include="..\..\gow\resources\renderer.h" />
     <ClInclude Include="..\..\gow\resources\txr.h" />
     <ClInclude Include="..\..\gow\utils.h" />
     <ClInclude Include="..\..\gui\AppGameDatabase.h" />

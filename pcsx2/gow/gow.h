@@ -31,6 +31,10 @@ public:
 	MeshManager *mesh;
 };
 
+namespace offsets {
+	static u32 &uFrameCounter = pmemref<u32>(0x32ED58);
+}
+
 extern gow::Core *core;
 extern gow::ResourceManagers managers;
 

@@ -9,6 +9,8 @@
 
 namespace gow {
 
+namespace raw {
+
 #pragma pack(push, 1)
 struct stGfx {
 	stIInstance instance;
@@ -54,6 +56,8 @@ struct stTxr {
 static_assert(sizeof(stTxr) == 0x70, "txr size");
 #pragma pack(pop)
 
+} // namespace raw
+
 class Texture {
 protected:
 	union {
@@ -61,14 +65,15 @@ protected:
 		GLuint _image;
     };
 	int imagesCount;
-    stTxr *img;
+    raw::stTxr *img;
 	GLsizei width, height;
     bool generated;
 	char name[32];
 
 	GLuint &getImageRef(int index) { return imagesCount == 1 ? _image : _images[index]; };
-    void generateTextures(stGfx *pal);
-    void generateMip(stGfx *pal);
+    void generateTextures(raw::stGfx *pal);
+    void generateMip(raw::stGfx *pal);
+
 public:
 	Texture(u32 offset, char *name = nullptr);
 	~Texture();

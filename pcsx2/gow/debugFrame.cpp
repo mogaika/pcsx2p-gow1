@@ -17,13 +17,14 @@ DebugFrame::DebugFrame(wxString title):
     sizer->Add(notebook, 1, wxEXPAND);
 
 	tabMemmap = new DebugMemoryMap(notebook);
-    notebook->AddPage(tabMemmap, _("Memmap"), false);
-
-	tabTextures = new DebugTextures(notebook);
-    notebook->AddPage(tabTextures, _("Textures"), false);
-
+    tabTextures = new DebugTextures(notebook);
 	tabRenderer = new DebugRenderer(notebook);
-    notebook->AddPage(tabRenderer, _("Renderer"), false);
+    tabWadEvents = new DebugWadEvents(notebook);
+
+    notebook->AddPage(tabMemmap, _("Memmap"), false);
+	notebook->AddPage(tabTextures, _("Textures"), false);
+	notebook->AddPage(tabRenderer, _("Renderer"), false);
+	notebook->AddPage(tabWadEvents, _("WadEvents"), false);
 
 	SetName(wxT("GoW debug"));
     SetSize(600, 400);
@@ -154,7 +155,6 @@ void DebugTextures::OnUnLoadedTexture(u32 offset) {
 	}
 }
 
-
 DebugRenderer::DebugRenderer(wxWindow *parent):
 	wxPanel(parent) {
     wxBoxSizer *sizerVertical = new wxBoxSizer(wxVERTICAL);
@@ -173,6 +173,10 @@ DebugRenderer::DebugRenderer(wxWindow *parent):
     textSize2->SetWindowStyle(textSize2->GetWindowStyle() | wxTE_PROCESS_ENTER);
     textSize2->Bind(wxEVT_COMMAND_TEXT_ENTER, &DebugRenderer::OnTextSize2Change, this);
     sizerVertical->Add(textSize2, 0, wxALL, 2);
+
+	buttonDumpFrame = new wxButton(this, wxID_ANY, _("Dump frame"));
+    buttonDumpFrame->Bind(wxEVT_BUTTON, &DebugRenderer::OnButtonDumpFrame, this);
+    sizerVertical->Add(buttonDumpFrame, 0, wxALL, 5);
 }
 
 void DebugRenderer::OnTextSize1Change(wxCommandEvent &event) {
@@ -197,4 +201,37 @@ void DebugRenderer::OnTextSize2Change(wxCommandEvent &event) {
 
 void DebugRenderer::OnButtonReloadShaders(wxCommandEvent &event) {
     core->Renderer()->ReloadShaders();
+}
+
+void DebugRenderer::OnButtonDumpFrame(wxCommandEvent &event) {
+    core->Renderer()->DumpFrame();
+}
+
+DebugWadEvents::DebugWadEvents(wxWindow *parent):
+	wxPanel(parent) {
+    wxBoxSizer *sizerVertical = new wxBoxSizer(wxVERTICAL);
+    this->SetSizer(sizerVertical);
+
+	eventsList = new wxListBox(this, wxID_ANY);
+    sizerVertical->Add(eventsList, 1, wxALL | wxEXPAND);
+}
+
+void DebugWadEvents::OnNewEvent(u16 eventId, u16 param1, u32 param2, char *name) {
+	char *e = "";
+	switch (eventId) {
+        case 1: e = "unload scene wad"; break;
+        case 3: e = "load scene wad"; break;
+		case 5: e = "unload hero wad"; break;
+        case 6: e = "load hero wad"; break;
+		case 8: e = "unload slot wad"; break;
+        case 9: e = "load slot wad"; break;
+		case 0xb: e = "unload weapon/skill wad"; break;
+        case 0xc: e = "load weapon/skill wad"; break;
+		case 0xe: e = "discard scene wad"; break;
+		case 0x10: e = "restart scene wad"; break;
+        case 0x11: e = "load shell wad"; break;
+        case 0x13: e = "load savept wad"; break;
+	}
+    eventsList->Insert(wxString::Format("f:%.8x id:%.4x p1:%.4x p2:%.8x %-16s %s",
+		offsets::uFrameCounter, eventId, param1, param2, name, e), eventsList->GetCount());
 }
