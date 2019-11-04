@@ -4,6 +4,8 @@ layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec2 aTexCoord;
 
 uniform mat4 uMatrix;
+uniform float uTexYScale;
+
 uniform float size1;
 uniform float size2;
 
@@ -11,6 +13,7 @@ out vec2 fTexCoord;
 
 void main() {
 	fTexCoord = aTexCoord * (1.0/4096.0);
+	fTexCoord = vec2(fTexCoord.x, fTexCoord.y * uTexYScale);
 
 	vec4 pos = vec4(aPos, 1.0);
 	

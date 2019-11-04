@@ -67,6 +67,7 @@ protected:
 	int imagesCount;
     raw::stTxr *img;
 	GLsizei width, height;
+	float yScale;
     bool generated;
 	char name[32];
 
@@ -80,6 +81,7 @@ public:
 
 	GLuint GetGl(int index) { return getImageRef(index); }
     char *GetName() { return name; }
+    float GetYScale() { return yScale; }
 };
 
 class TextureManager {

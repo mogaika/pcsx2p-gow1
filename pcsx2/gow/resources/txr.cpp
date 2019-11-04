@@ -18,6 +18,12 @@ Texture::Texture(u32 offset, char *name) :
 	width = gfx->width;
 	height = gfx->height;
 
+	int virtualHeight = 1 << (31 - __builtin_clz(height));
+    if (virtualHeight < height) {
+		virtualHeight <<= 1;
+	}
+    yScale = float(virtualHeight) / float(height);
+
 	imagesCount = gfx->imagesCount;
 
 	if (imagesCount > 1) {
@@ -30,7 +36,8 @@ Texture::Texture(u32 offset, char *name) :
     }
 
 #ifdef GOW_TEXTURE_DEBUG
-	DevCon.WriteLn("gow: created texture %s %x (%d)", name, img, imagesCount);
+    DevCon.WriteLn("gow: created texture %s 0x%x (%d) w: 0x%03x h: 0x%03x vH: 0x%03x (scale: %f)",
+		name, img, imagesCount, width, height, virtualHeight, scale);
 #endif
 }
 
@@ -53,7 +60,9 @@ u32 gfxUnswizzle(u32 x, u32 y, u32 width) {
 void Texture::generateTextures(raw::stGfx *pal) {
     auto gfx = img->gfxInstance();
 
+#ifdef GOW_TEXTURE_DEBUG
     DevCon.WriteLn("gow: generating texture for %x", img);
+#endif
     // TODO: handle multiple pal case
     u32 palleteSize = pal->width * pal->height;
     auto pallete = new u32[palleteSize];

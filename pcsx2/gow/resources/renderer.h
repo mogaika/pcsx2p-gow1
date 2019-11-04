@@ -2,6 +2,7 @@
 
 #include "gow/utils.h"
 #include "gow/resources/mesh.h"
+#include "gow/resources/material.h"
 
 namespace gow {
 
@@ -48,6 +49,7 @@ struct stRenderFlashStatic : stRenderFlashBase {
 	gap_t _gap17[1];
 
 	stMeshObject *meshObject() { return pmem<stMeshObject>(_meshObject); }
+	stMatLayer *matLayer() { return pmemz<stMatLayer>(_usedMatLayer); }
 };
 static_assert(sizeof(stRenderFlashStatic) == 0x18, "stRenderFlashStatic size");
 

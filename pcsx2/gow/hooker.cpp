@@ -52,11 +52,11 @@ void hookIdleStepFrame() { hooker->BeforeFrame(); }
 void hookTxrInstanceCtor() { managers.texture->HookInstanceCtor(); }
 void hookTxrInstanceDtor() { managers.texture->HookInstanceDtor(); }
 
-u32 meshLoadingServer;
-void hookMeshInstanceCtorCollectServer() { meshLoadingServer = cpuRegs.GPR.n.a0.UL[0]; }
-
-void hookMeshInstanceCtor() { managers.mesh->HookInstanceCtor(meshLoadingServer); }
-void hookMeshServerDtor() { managers.mesh->HookServerDtor(); }
+void hookMeshInstanceCtor() { managers.mesh->HookInstanceCtor(); }
+void hookAllocatorDtor() {
+	u32 allocatorOffset = cpuRegs.GPR.n.a0.UL[0];
+    managers.mesh->HookAllocatorDtor(allocatorOffset);
+}
 
 void hookRenderFlash() { core->Renderer()->RenderFlashes(); }
 
@@ -79,15 +79,15 @@ void Hooker::InitHooks() {
 	addHook(0x1665D8, hookTxrInstanceCtor);
     addHook(0x259688, hookTxrInstanceDtor);
 
-	addHook(0x1576BC, hookMeshInstanceCtorCollectServer); // a0 - pServer
 	addHook(0x15770C, hookMeshInstanceCtor); // s0 - pMesh, s3 - pczMeshName
-	addHook(0x1573E8, hookMeshServerDtor); // a0 - pServer
 
 	addHook(0x146354, hookRenderFlash); // s5 - pFlash (first element of forward linked list)
 
-	addHook(0x165B14, hookRenderStatic); // 0x50($sp) - pFlash
+	addHook(0x165B04, hookRenderStatic);
 
 	addHook(0x1BB0F8, hookWadEventAdded);
+
+	addHook(0x13D8A0, hookAllocatorDtor);
 
     DevCon.WriteLn("gow hooker initialized");
 }

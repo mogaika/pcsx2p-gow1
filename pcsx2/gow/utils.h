@@ -27,6 +27,24 @@ static inline u32 revmem(void *ptr) { return revmem((u32)ptr); }
 typedef u8 gap_t;
 typedef s16 server_id_t;
 
+
+#ifdef _MSC_VER
+#include <intrin.h>
+
+#pragma intrinsic(_BitScanForward)
+#pragma intrinsic(__lzcnt)
+
+static inline int __builtin_ctz(uint32_t x) {
+    unsigned long ret;
+    _BitScanForward(&ret, x);
+    return (int)ret;
+}
+
+static inline int __builtin_clz(uint32_t x) {
+    return (int)__lzcnt(x);
+}
+#endif
+
 #pragma pack(push, 1)
 struct stIInstance {
 	server_id_t managerId;
@@ -39,6 +57,17 @@ struct stIInstance {
 	inline u32 offset() { return revmem(this); }
 };
 static_assert(sizeof(stIInstance) == 0x10, "IInstance size");
+
+template <typename T>
+struct stCStack {
+	u32 _data;
+	u32 position;
+	u32 capacity;
+
+	u32 *dataOffsets() { return pmem<u32>(_data); }
+    u32 headOffset() { return (position == capacity) ? 0 : dataOffsets()[position]; }
+    T *head() { return pmemz<T>(head()); }
+};
 #pragma pack(pop)
 
 } // namespace gow

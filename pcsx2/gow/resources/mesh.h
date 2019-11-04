@@ -5,6 +5,8 @@
 
 #include "gow/utils.h"
 
+// #define GOW_MESH_DEBUG
+
 namespace gow {
 
 class Mesh;
@@ -111,9 +113,13 @@ struct stMeshObject {
     };
 	stDmaTag dmaTags[0];
 
-	MeshObject *&refMeshObject() { return pMeshObject; }
+	void setMeshObject(MeshObject *meshObject) { this->pMeshObject = meshObject; }
+	MeshObject *meshObject() { return pMeshObject; }
+	u32 totalDmaTagsCount() { return u32(dmaTagsPerProgram) * u32(instancesCount) * u32(textureLayersCount); }
+    u32 *jointMaps(){ return (u32 *)(u32(this) + sizeof(*this) + totalDmaTagsCount() * 0x10); }
+	u32 *jointMap(u32 instanceIndex) { return &jointMaps()[instanceIndex * u32(jointsMapCountPerInstance)]; }
 };
-static_assert(sizeof(stMeshObject) == 0x20, "meshobject size");
+static_assert(sizeof(stMeshObject) == 0x20, "stMeshObject size");
 
 struct stMeshGroup {
 	float lodDist;
@@ -124,7 +130,7 @@ struct stMeshGroup {
 	static const float LOD_MAX;
 	stMeshObject *getObject(u32 index) { return (stMeshObject*) pointer_add(this, objectOffsets[index]); }
 };
-static_assert(sizeof(stMeshGroup) == 0xc, "meshgroup size");
+static_assert(sizeof(stMeshGroup) == 0xc, "stMeshGroup size");
 
 struct stMeshPart {
 	u16 visible; // 0 - not visible, 1 - visible. probably other meaning or some typing
@@ -133,7 +139,7 @@ struct stMeshPart {
 
 	stMeshGroup *getGroup(u32 index) { return (stMeshGroup *)pointer_add(this, groupOffsets[index]); }
 };
-static_assert(sizeof(stMeshPart) == 0x4, "meshpart size");
+static_assert(sizeof(stMeshPart) == 0x4, "stMeshPart size");
 
 struct stMesh {
 	u32 magic;
@@ -146,7 +152,7 @@ struct stMesh {
 
 	stMeshPart *getPart(u32 index) { return (stMeshPart*)(u32(this) + partOffsets[index]);}
 };
-static_assert(sizeof(stMesh) == 0x50, "mesh size");
+static_assert(sizeof(stMesh) == 0x50, "stMesh size");
 
 #pragma warning(pop)
 #pragma pack(pop)
@@ -186,7 +192,7 @@ protected:
 		gap_t _gapE[1];
 		u8 jointFlag;
 	};
-	static_assert(sizeof(stPacketMeta) == 0x10, "packet meta size");
+	static_assert(sizeof(stPacketMeta) == 0x10, "stPacketMeta size");
 
 	// key - source packet offset (relative to stMeshObject)
 	// value - gl buffer that stores data on this offset (can be vertex/uv/normal/indexes)
@@ -199,6 +205,7 @@ protected:
 
     std::vector<dma_program_t> arrays; 
 	raw::stMeshObject *object;
+	Mesh *mesh;
 
 	// returns vif data size
     u32 decompileVifUnpack(raw::stVifTag *vif, stDecomileState& state);
@@ -206,22 +213,25 @@ protected:
     void decompileDmaProgram(raw::stDmaTag *dmaProgram, dma_program_t &program);
     void decompilePackets();
 public:
-    MeshObject(raw::stMeshObject *object);
+    MeshObject(Mesh *mesh, raw::stMeshObject *object);
 	~MeshObject();
 
 	std::vector<dma_program_t> &GetPrograms() { return arrays; }
+	Mesh &getMesh() { return *mesh; }
 };
 
 class Mesh {
 protected:
-	u32 serverOffset;
+    u32 allocatorOffset;
 	raw::stMesh *mesh;
+	char name[24];
 
 public:
-    Mesh(u32 offset, u32 serverOffset);
+    Mesh(u32 offset, u32 serverOffset, char* name);
     ~Mesh();
 
-	u32 GetServerOffset() { return serverOffset; }
+	u32 GetAllocatorOffset() { return allocatorOffset; }
+    char *getName() { return name; }
 };
 
 class MeshManager {
@@ -232,8 +242,8 @@ public:
 
 	Mesh *GetMesh(u32 offset);
 
-    void HookInstanceCtor(u32 serverOffset);
-    void HookServerDtor();
+    void HookInstanceCtor();
+    void HookAllocatorDtor(u32 allocatorOffset);
 };
 
 } // namespace gow

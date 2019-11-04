@@ -452,12 +452,14 @@
     <ClInclude Include="..\..\GameDatabase.h" />
     <ClInclude Include="..\..\Gif_Unit.h" />
     <ClInclude Include="..\..\gow\debugFrame.h" />
+    <ClInclude Include="..\..\gow\dynmem.h" />
     <ClInclude Include="..\..\gow\gl.h" />
     <ClInclude Include="..\..\gow\glwindow.h" />
     <ClInclude Include="..\..\gow\gow.h" />
     <ClInclude Include="..\..\gow\hooker.h" />
     <ClInclude Include="..\..\gow\renderer.h" />
     <ClInclude Include="..\..\gow\resources\flp.h" />
+    <ClInclude Include="..\..\gow\resources\material.h" />
     <ClInclude Include="..\..\gow\resources\mesh.h" />
     <ClInclude Include="..\..\gow\resources\renderer.h" />
     <ClInclude Include="..\..\gow\resources\txr.h" />

@@ -3,26 +3,37 @@
 #include "gow/resources/mesh.h"
 #include "gow/gl.h"
 #include "gow/gow.h"
+#include "gow/dynmem.h"
 
 using namespace gow;
 
 const float raw::stMeshGroup::LOD_MAX = -34359738368.0f;
 
-Mesh::Mesh(u32 offset, u32 serverOffset):
-	serverOffset(serverOffset) {
+Mesh::Mesh(u32 offset, u32 allocatorOffset, char *name):
+	allocatorOffset(allocatorOffset) {
     mesh = pmem<raw::stMesh>(offset);
 
-	//DevCon.WriteLn("mesh 0x%x", mesh);
+	strncpy(this->name, name, sizeof(this->name));
+
+#ifdef GOW_MESH_DEBUG
+	DevCon.WriteLn("mesh 0x%x", mesh);
+#endif
 	for (u32 i = 0; i < mesh->partsCount; i++) {
 		auto part = mesh->getPart(i);
-		//DevCon.WriteLn("part 0x%x", part);
+#ifdef GOW_MESH_DEBUG
+		DevCon.WriteLn("part 0x%x", part);
+#endif
 		for (u32 j = 0; j < part->groupsCount; j++) {
 			auto group = part->getGroup(j);
-           // DevCon.WriteLn("group 0x%x", group);
+#ifdef GOW_MESH_DEBUG
+            DevCon.WriteLn("group 0x%x", group);
+#endif
 			for (u32 k = 0; k < group->objectsCount; k++) {
 				auto object = group->getObject(k);
-                //DevCon.WriteLn("object 0x%x", object);
-				object->refMeshObject() = new MeshObject(object);
+#ifdef GOW_MESH_DEBUG
+                DevCon.WriteLn("object 0x%x", object);
+#endif
+				object->setMeshObject(new MeshObject(this, object));
 			}
 		}
 	}
@@ -35,14 +46,15 @@ Mesh::~Mesh() {
             auto group = part->getGroup(j);
             for (u32 k = 0; k < group->objectsCount; k++) {
                 auto object = group->getObject(k);
-                delete object->refMeshObject();
+                delete object->meshObject();
             }
         }
     }
 }
 
-MeshObject::MeshObject(raw::stMeshObject *object):
-	object(object) {
+MeshObject::MeshObject(Mesh *mesh, raw::stMeshObject *object):
+	object(object),
+	mesh(mesh) {
     core->Window()->AttachContext();
 	decompilePackets();
     core->Window()->DetachContext();
@@ -152,6 +164,8 @@ u32 MeshObject::decompileVifUnpack(raw::stVifTag *vif, stDecomileState &state) {
 	}
 	*/
 	bool handled = false;
+
+	// TODO: cache buffer using buffers[vif] map
 
     if (width == 32 && componentsCount == 4) {
         if (target == 0x000 || target == 0x155 || target == 0x2ab) { // vmta
@@ -320,10 +334,12 @@ void  MeshObject::decompileDmaProgram(raw::stDmaTag *dmaProgram, dma_program_t &
 					decompileVifProgram(vifProgramBegin, vifProgramEnd, program);
 					static int totalvao = 0;
 					totalvao += program.size();
+#ifdef GOW_MESH_DEBUG
                     DevCon.Error("created vao count %d (total: %d)", program.size(), totalvao);
 					//for (auto i = program.begin(); i != program.end(); i++) {
 					//	DevCon.WriteLn("vao 0x%x", i->vao);
 					//}
+#endif
 				}
 				break;
             default:
@@ -354,7 +370,7 @@ Mesh *MeshManager::GetMesh(u32 offset) {
     return (mesh == meshes.end()) ? nullptr : mesh->second;
 }
 
-void MeshManager::HookInstanceCtor(u32 serverOffset) {
+void MeshManager::HookInstanceCtor() {
     auto offset = cpuRegs.GPR.n.s0.UL[0];
     auto name = pmemz<char>(cpuRegs.GPR.n.s3);
     /*
@@ -362,21 +378,27 @@ void MeshManager::HookInstanceCtor(u32 serverOffset) {
         return;
     }
 	*/
-    auto mesh = new Mesh(offset, serverOffset);
+
+	auto allocatorOffset = offsets::allocatorsStack.headOffset();
+
+    auto mesh = new Mesh(offset, allocatorOffset, name);
     if (!meshes.insert(std::pair<u32, Mesh *>(offset, mesh)).second) {
 		DevCon.Error("Wasn't able to insert mesh: key %x already exists", offset);
     } else {
+#ifdef GOW_MESH_DEBUG
 		DevCon.WriteLn("gow: mesh: inserter new mesh %x %s", offset, name);
+#endif
     };
 }
 
-void MeshManager::HookServerDtor() {
-    auto serverOffset = cpuRegs.GPR.n.a0.UL[0];
-	DevCon.WriteLn("gow: mesh: Server %x destroying", serverOffset);
+void MeshManager::HookAllocatorDtor(u32 allocatorOffset) {
+    DevCon.WriteLn("gow: mesh: Allocator %x destroying", allocatorOffset);
 
 	for (auto i = meshes.begin(); i != meshes.end();) {
-		if (i->second->GetServerOffset() == serverOffset) {
+        if (i->second->GetAllocatorOffset() == allocatorOffset) {
+#ifdef GOW_MESH_DEBUG
             DevCon.Error("gow: mesh: removing: %x", i->first);
+#endif
 			delete i->second;
 			i = meshes.erase(i);
 		} else {

@@ -1431,6 +1431,12 @@
     <ClInclude Include="..\..\gow\resources\renderer.h">
       <Filter>Gow\resources</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\gow\resources\material.h">
+      <Filter>Gow\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\gow\dynmem.h">
+      <Filter>Gow</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\wxResources.rc">

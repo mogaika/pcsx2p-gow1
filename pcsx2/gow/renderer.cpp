@@ -4,6 +4,11 @@
 #include "gow/gl.h"
 #include "gow/gow.h"
 
+#include "../3rdparty/glm/mat4x4.hpp"
+#include "../3rdparty/glm/ext/matrix_clip_space.hpp"
+#include "../3rdparty/glm/ext/scalar_constants.hpp"
+
+
 using namespace gow;
 
 void gow::Renderer::loadShaders() {
@@ -128,11 +133,12 @@ void Renderer::RenderFlashes() {
     auto size2uniform = shader_flash.GetUniformLocation("size2");
     auto useTextureuniform = shader_flash.GetUniformLocation("uUseTexture");
     auto blendColoruniform = shader_flash.GetUniformLocation("uBlendColor");
+	auto textureYScaleUniform = shader_flash.GetUniformLocation("uTexYScale");
 
 	float blendColors[4] = {1.0, 1.0, 1.0, 1.0};
 
 	if (dumpFrame) {
-		DevCon.Error("[frame 0x%.7x Flashes start", offsets::uFrameCounter);
+		DevCon.Error("[frame 0x%07x Flashes start", offsets::uFrameCounter);
 	}
 
 	glUniform4f(blendColoruniform, 1.0, 1.0, 1.0, 1.0);
@@ -176,6 +182,7 @@ void Renderer::RenderFlashes() {
                             DevCon.Error("gow: render: flp: wasn't able to find texture 0x%x", flpDataSub2->txrInstanceOffset);
                         }
 						glUniform1i(useTextureuniform, 1);
+                        glUniform1f(textureYScaleUniform, texture->GetYScale());
                         glBindTexture(GL_TEXTURE_2D, texture->GetGl(0));
 
 						glUniform4f(blendColoruniform, blendColors[0], blendColors[1], blendColors[2], blendColors[3]);
@@ -205,7 +212,7 @@ void Renderer::RenderFlashes() {
                         }
                     }
 
-					auto meshObject = object->refMeshObject();
+					auto meshObject = object->meshObject();
 
 					//DevCon.WriteLn("gow: render: flp: dma programs: %x", meshObject->GetPrograms().size());
 					auto programs = meshObject->GetPrograms()[0];
@@ -242,7 +249,7 @@ void Renderer::RenderFlashes() {
 	}
 
     if (dumpFrame) {
-        DevCon.Error("[frame 0x%.7x commands count:%d flashes count: %d", offsets::uFrameCounter, renderedCommands, renderedFlashes);
+        DevCon.Error("[frame 0x%07x] commands count:%d flashes count: %d", offsets::uFrameCounter, renderedCommands, renderedFlashes);
     }
 
 	window->DetachContext();
@@ -251,25 +258,159 @@ void Renderer::RenderFlashes() {
 void Renderer::RenderStatic() {
 	window->AttachContext();
 
+	/*
+	pass 0 - reflection
+	pass 2 - reflection surface
+	pass 3 - reflection surface
+	pass 4 - static geometry
+
+	
+	*/
+
+	shader_mesh.Use();
+    CheckErrors("gow: render: static: use shader");
+
+    auto matricesUniform = shader_mesh.GetUniformLocation("uMatrices");
+    auto size1uniform = shader_mesh.GetUniformLocation("size1");
+    auto size2uniform = shader_mesh.GetUniformLocation("size2");
+    auto useTextureuniform = shader_mesh.GetUniformLocation("uUseTexture");
+    auto blendColoruniform = shader_mesh.GetUniformLocation("uBlendColor");
+    auto projectonMatrixUniform = shader_mesh.GetUniformLocation("uProjectionMatrix");
+    auto textureYScaleUniform = shader_mesh.GetUniformLocation("uTexYScale");
+    CheckErrors("gow: render: static: get uniforms");
+
 	glEnable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
     glDepthMask(true);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glActiveTexture(GL_TEXTURE0);
+    glClear(GL_DEPTH_BUFFER_BIT);
 
+    glUniform1i(useTextureuniform, 1);
+	
+	u32 renderPass2 = rmem<u32>(cpuRegs.GPR.n.sp.UL[0] + 0x40);
+    u32 renderPass1 = cpuRegs.GPR.n.s3.UL[0];
 	if (dumpFrame) {
-        DevCon.Error("[frame 0x%.7x Static start", offsets::uFrameCounter);
+        DevCon.Error("#######[frame 0x%07x Static start (render pass %d:%d)",
+			offsets::uFrameCounter, renderPass1, renderPass2);
     }
-
+	
+	// flashes grouped by texture
 	int renderedFlashes = 0;
-	auto firstFlash = pmemz<raw::stRenderFlashStatic>(cpuRegs.GPR.n.sp.UL[0] + 0x50);
+	int renderedGroups = 0;
 
-    for (auto flash = firstFlash; flash != 0; flash = (raw::stRenderFlashStatic *)flash->next()) {
-        renderedFlashes++;
+	auto texGroupIndexStart = cpuRegs.GPR.n.v0.UL[0];
+    auto texGroupIndexEnd = cpuRegs.GPR.n.v1.UL[0];
+    auto texGroupStructOffset = rmem<u32>(cpuRegs.GPR.n.sp.UL[0] + 0x4C);
+    auto texGroupArray = pmemz<u32>(rmem<u32>(texGroupStructOffset + 0x4));
+
+	glm::mat4x4 *lastMatrix = nullptr;
+
+	auto perspectiveMatrix = glm::perspective(glm::pi<float>() * 0.25f, 4.0f / 3.0f, 0.1f, 10000.f);
+    glUniformMatrix4fv(projectonMatrixUniform, 1, GL_FALSE, (GLfloat *)&perspectiveMatrix);
+
+	for (u32 iTexGroup = texGroupIndexStart; iTexGroup < texGroupIndexEnd; iTexGroup++) {
+        auto firstFlashOffset = texGroupArray[iTexGroup];
+        if (!firstFlashOffset) {
+			continue;
+        }
+
+		if (dumpFrame) {
+            DevCon.Error("group ", renderedGroups);
+        }
+		renderedGroups++;
+
+		bool isMaterialSetted = false;
+
+        auto firstFlash = pmemz<raw::stRenderFlashStatic>(firstFlashOffset);
+		for (auto flash = firstFlash; flash != 0; flash = (raw::stRenderFlashStatic *)flash->next()) {
+			if (!isMaterialSetted) {
+				auto matLayer = flash->matLayer();
+                auto texture = managers.texture->GetTexture(matLayer->_textureOffset);
+
+				if (!texture) {
+					continue;
+				}
+
+				CheckErrors("gow: render: static: before glBindTexture");
+                glBindTexture(GL_TEXTURE_2D, texture->GetGl(0));
+                glUniform1f(textureYScaleUniform, texture->GetYScale());
+                
+				CheckErrors("gow: render: static: after glUniform1f(textureYScaleUniform, texture->GetYScale())");
+				isMaterialSetted = true;
+			}
+
+			static_assert(sizeof(glm::mat4x4) == 0x40, "glm::mat4x4 size");
+            auto matrices = pmemz<glm::mat4x4>(rmem<u32>(flash->_someBufferInStackForFlashesWithMatrices + 8));
+
+			auto object = flash->meshObject();
+
+			auto meshObject = object->meshObject();
+			if (!meshObject) {
+				// TODO: examine issue. Dynamic water??
+				continue;
+			}
+
+			u32* jointMap = object->jointMap(flash->instanceId);
+            auto jointId = jointMap[0];
+
+			if (dumpFrame) {
+                DevCon.WriteLn(Color_Orange, "flash 0x%03x: inst %d layer %d matlayer 0x%08x instance id %d joint id %d %s",
+                               renderedFlashes, flash->instanceId, flash->layerIndex,
+                               flash->_usedMatLayer, flash->instanceId, jointId,
+                               flash->meshObject()->meshObject()->getMesh().getName());
+            }
+
+
+			glm::mat4x4 &matrix = matrices[jointId + 1];
+
+			if (lastMatrix != &matrix) {
+				if (dumpFrame) {
+					for (glm::length_t i = 0; i < 4; i++) {
+						//auto vec = matrix[i];
+						auto vec = ((float*)(&matrix)) + i*4;
+						DevCon.WriteLn(Color_Green, "[%d] %f %f %f %f", i, vec[0], vec[1], vec[2], vec[3]);
+					}
+				}
+
+				// TODO: use matrix index from object joint map
+				glUniformMatrix4fv(matricesUniform, 1, GL_FALSE, (GLfloat*) &matrix);
+
+				lastMatrix  = &matrix;
+            }
+
+            auto programsArray = meshObject->GetPrograms();
+            if (!programsArray.size()) {
+				DevCon.Error("gow: render: static: empty programs array");
+				continue;
+			}
+			auto programs = programsArray[0];
+
+            if (dumpFrame) {
+                DevCon.WriteLn("gow: render: static: dma programs: 0x%x programs: 0x%x",
+					meshObject->GetPrograms().size(), programs.size());
+            }
+
+            for (auto vao = programs.begin(); vao != programs.end(); ++vao) {
+                CheckErrors("gow: render: static: before bind");
+                if (dumpFrame) {
+					// DevCon.WriteLn("gow: render: static: bind vao 0x%x count 0x%x", vao->vao, vao->indexesCount);
+                }
+                glBindVertexArray(vao->vao);
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vao->ebo);
+                CheckErrors("gow: render: static: before draw elements");
+                glDrawElements(GL_TRIANGLES, vao->indexesCount, GL_UNSIGNED_SHORT, 0);
+                // DevCon.WriteLn("gow: render: flp: rendered vao 0x%x", vao->first);
+                CheckErrors("gow: render: static: draw elements");
+            }
+
+			renderedFlashes++;
+		}
     }
+
 	if (dumpFrame) {
-		DevCon.Error("[frame 0x%.7x Static elements: %d", offsets::uFrameCounter, renderedFlashes);
+		DevCon.Error("[frame 0x%07x] Static groups: %d flashes: %d", offsets::uFrameCounter, renderedGroups, renderedFlashes);
     }
 
 	window->DetachContext();
@@ -283,12 +424,6 @@ void Renderer::EndOfFrame() {
 		reloadShadersRequest = false;
 	}
 
-	// managers.texture->GetTexture
-    CheckErrors("clear");
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    CheckErrors("swap buffers");
-
 	if (currentPreviewTexture) {
         auto texture = managers.texture->GetTexture(currentPreviewTexture);
 		if (texture) {
@@ -298,9 +433,15 @@ void Renderer::EndOfFrame() {
 		}
     }
 
+	if (dumpFrame) {
+		DevCon.WriteLn(Color_Blue, "========= DUMPED FRAME %d =========", offsets::uFrameCounter);
+	}
 	dumpFrame = false;
     window->SwapBuffers();
+    CheckErrors("swap buffers");
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    CheckErrors("clear");
 
 	window->DetachContext();
 }
@@ -364,8 +505,11 @@ void Shader::Load(char *vertexFilename, char *fragmentFilename) {
 		if (loaded) {
             glDeleteProgram(oldProgram);
         }
+		DevCon.WriteLn(Color_Yellow, "Shader reloaded (%s)(%s)", vertexFilename, fragmentFilename);
         loaded = true;
 	}
+
+	warnedTimes = 0;
 
 	glDeleteShader(vert);
     glDeleteShader(frag);
@@ -376,5 +520,12 @@ void gow::Shader::Use() {
 }
 
 GLuint Shader::GetUniformLocation(char *name) {
-    return glGetUniformLocation(program, name);
+    GLuint loc = glGetUniformLocation(program, name);
+	if (loc == -1) {
+        if (warnedTimes < 16) {
+			warnedTimes++;
+			DevCon.Error("Wasn't able to get '%s' uniform", name);
+        }
+	}
+	return loc;
 }

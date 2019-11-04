@@ -13,6 +13,7 @@ protected:
 	GLuint program;
 	GLuint compileShader(char *filename, GLuint shader);
 	bool loaded;
+	int warnedTimes;
 public:
     Shader(): loaded(false) {};
 	void Load(char *vertexFilename, char *fragmentFilename);
