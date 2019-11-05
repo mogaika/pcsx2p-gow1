@@ -17,13 +17,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         // ShowWindow(hWnd, SW_HIDE);
         // DestroyWindow(hWnd);
 			return 0;
-			break;
+        case WM_ERASEBKGND:
+			return TRUE;
+        case WM_SIZING:
+            if (core && core->Window()) {
+                core->Window()->UpdateViewPort();
+            }
+			return TRUE;
         case WM_SIZE:
             if (core && core->Window()) {
                 core->Window()->UpdateViewPort();
             }
 			return 0;
-            break;
         default:
             return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -37,7 +42,8 @@ void Window::Create() {
     wc.lpfnWndProc = WndProc;
     wc.hInstance = GetModuleHandle(NULL);
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+    //wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+	wc.hbrBackground = NULL;
     wc.lpszClassName = _T("GOWRNDRWND");
 
     if (!GetClassInfo(wc.hInstance, wc.lpszClassName, &wc)) {
@@ -181,8 +187,9 @@ void Window::CreateContext(int major, int minor) {
 void Window::updateViewPort() {
 	RECT size;
     GetClientRect(window, &size);
-    glViewport(0, 0, size.right, size.bottom);
-	DevCon.WriteLn("size %d %d", size.right, size.bottom);
+	width = size.right;
+	height = size.bottom;
+    glViewport(0, 0, width, height);
 }
 
 void Window::AttachContext() {
@@ -192,7 +199,7 @@ void Window::AttachContext() {
 		}
         contextAttached = true;
     } else {
-        DevCon.Error("gow: Opengl: Trying to attach when already attached");
+        // DevCon.Error("gow: Opengl: Trying to attach when already attached");
 	}
 }
 
@@ -203,7 +210,7 @@ void Window::DetachContext() {
         }
         contextAttached = false;
     } else {
-        DevCon.Error("gow: Opengl: Trying to detach when already detached");
+        // DevCon.Error("gow: Opengl: Trying to detach when already detached");
     }
 }
 
@@ -214,6 +221,21 @@ void Window::Destroy() {
 
 void Window::SwapBuffers() {
     ::SwapBuffers(display);
+
+	if (doUpdateViewport) {
+		bool detachAfter = false;
+        if (!contextAttached) {
+            AttachContext();
+			detachAfter = true;
+        }
+
+		updateViewPort();
+
+		if (detachAfter) {
+			DetachContext();
+        }
+		doUpdateViewport = false;
+    }
 }
 
 void gow::Window::loadGl() {

@@ -26,8 +26,13 @@ void main() {
 	pos = pos * (1.0/16.0); // normalize fixed point to floating point
 	// pos = pos * size1;
 
-	mat4 matrix = uProjectionMatrix * uMatrices[0];
-	// matrix = uProjectionMatrix;
+	mat4 matrix;
+	matrix = uMatrices[0];
+	//matrix[3][0] *= -1.0;
+	//matrix[3][1]  *= -1.0;
+	//matrix[3][2]  *= -1.0;
+
+	matrix = uProjectionMatrix * matrix;
 
 	pos = vec4(pos.xyz, 1.0);
 

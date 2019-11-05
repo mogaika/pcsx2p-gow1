@@ -13,6 +13,8 @@ protected:
 	HGLRC context;
     bool contextAttached;
 	HMODULE glModule;
+	u32 width, height;
+    bool doUpdateViewport;
 
 	void updateViewPort();
 	void loadGl();
@@ -27,7 +29,9 @@ public:
     void Destroy();
 	void SwapBuffers();
     void *GetProcAddress(char *name);
-	void UpdateViewPort() { AttachContext(); updateViewPort(); DetachContext(); }
+	void UpdateViewPort() { doUpdateViewport = true; };
+	u32 GetWidth() { return width; };
+    u32 GetHeight() { return height; };
 
     PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT;
     PFNWGLGETEXTENSIONSSTRINGARBPROC wglGetExtensionsStringARB;

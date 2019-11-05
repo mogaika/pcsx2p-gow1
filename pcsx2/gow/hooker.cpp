@@ -60,7 +60,19 @@ void hookAllocatorDtor() {
 
 void hookRenderFlash() { core->Renderer()->RenderFlashes(); }
 
-void hookRenderStatic() { core->Renderer()->RenderStatic(); }
+u32 _renderStaticRenderPass[4];
+void hookRenderStaticFetchArgs() {
+    _renderStaticRenderPass[0] = cpuRegs.GPR.n.a1.UL[0];
+    _renderStaticRenderPass[1] = cpuRegs.GPR.n.a2.UL[0];
+    _renderStaticRenderPass[2] = cpuRegs.GPR.n.a3.UL[0];
+    _renderStaticRenderPass[3] = cpuRegs.GPR.n.t0.UL[0];
+    core->Renderer()->RenderStaticPasses(_renderStaticRenderPass[0], _renderStaticRenderPass[1], _renderStaticRenderPass[2], _renderStaticRenderPass[3]);
+}
+void hookRenderStatic() {
+    u32 renderPass2 = rmem<u32>(cpuRegs.GPR.n.sp.UL[0] + 0x40);
+    u32 renderPass1 = cpuRegs.GPR.n.s3.UL[0];
+    core->Renderer()->RenderStatic(_renderStaticRenderPass[0], _renderStaticRenderPass[1], _renderStaticRenderPass[2], _renderStaticRenderPass[3]);
+}
 
 void hookWadEventAdded() {
     hooker->DebugFrame().GetWadEvents().OnNewEvent(
@@ -84,6 +96,7 @@ void Hooker::InitHooks() {
 	addHook(0x146354, hookRenderFlash); // s5 - pFlash (first element of forward linked list)
 
 	addHook(0x165B04, hookRenderStatic);
+    addHook(0x1658F8, hookRenderStaticFetchArgs);
 
 	addHook(0x1BB0F8, hookWadEventAdded);
 

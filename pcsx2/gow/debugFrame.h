@@ -73,6 +73,7 @@ protected:
 	wxButton *buttonReloadShaders;
     wxTextCtrl *textSize1;
     wxTextCtrl *textSize2;
+    wxTextCtrl *textMatrixOffset;
     wxButton *buttonDumpFrame;
 
 public:
@@ -80,6 +81,7 @@ public:
 
     void OnTextSize1Change(wxCommandEvent &event);
     void OnTextSize2Change(wxCommandEvent &event);
+    void OnTextMatrixOffsetChange(wxCommandEvent &event);
     void OnButtonReloadShaders(wxCommandEvent &event);
     void OnButtonDumpFrame(wxCommandEvent &event);
 };

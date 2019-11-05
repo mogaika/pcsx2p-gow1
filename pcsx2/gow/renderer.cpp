@@ -21,7 +21,9 @@ Renderer::Renderer(Window *window):
 	window(window), 
 	reloadShadersRequest(0),
 	currentPreviewTexture(0),
-	dumpFrame(false) {
+	dumpFrame(false),
+	dumpNextFrame(false),
+	matrixOffset(0) {
 	size1 = 1.0;
     // size2 = 0.001953125;
     size2 = 1.0;
@@ -43,7 +45,7 @@ void Renderer::Setup() {
 	window->AttachContext();
 
 	glClearColor(0.0, 0.0, 1.0, 1.0);
-    glClearDepth(10000.0);
+    glClearDepth(50000.0);
 
 	CheckErrors("color");
 
@@ -120,6 +122,7 @@ void Renderer::renderTexturedQuad(GLuint texture) {
 void Renderer::RenderFlashes() {
 	window->AttachContext();
 	
+	glClear(GL_DEPTH_BUFFER_BIT);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
     glDepthMask(false);
@@ -255,16 +258,47 @@ void Renderer::RenderFlashes() {
 	window->DetachContext();
 }
 
-void Renderer::RenderStatic() {
+
+void Renderer::RenderStaticPasses(u32 renderPass1, u32 renderPass2, u32 renderPass3, u32 renderPass4) {
+    if (dumpFrame) {
+        DevCon.WriteLn(Color_StrongBlue, "----------- [frame 0x%07x Static pass (render pass %d:%d:%d:%d)",
+			offsets::uFrameCounter, renderPass1, renderPass2, renderPass3, renderPass4);
+    }
+}
+
+void Renderer::RenderStatic(u32 renderPass1, u32 renderPass2, u32 renderPass3, u32 renderPass4) {
 	window->AttachContext();
 
 	/*
-	pass 0 - reflection
-	pass 2 - reflection surface
-	pass 3 - reflection surface
-	pass 4 - static geometry
+	render pass 0:1:0:0
+	render pass 0:2:0:0
+		- reflection textured
+	render pass 0:3:0:0
+	render pass 0:4:0:0
 
+	render pass 1:0:0:0
+		- mirrors (who reflects)
+	render pass 1:0:1:0
 	
+	render pass 1:1:0:0
+		- sky (diff?)
+	render pass 1:1:1:0
+		- sky (diff?), transparent
+	
+	render pass 1:0:0:0
+	render pass 1:0:1:0
+	
+	render pass 1:2:0:1
+		- static stuff, non transparent
+	render pass 1:2:1:1
+		- static stuff, transparent
+	render pass 1:2:0:2
+	
+	render pass 1:3:0:0
+	render pass 1:3:1:0
+	
+	render pass 1:4:0:0
+	render pass 1:4:1:0
 	*/
 
 	shader_mesh.Use();
@@ -279,21 +313,33 @@ void Renderer::RenderStatic() {
     auto textureYScaleUniform = shader_mesh.GetUniformLocation("uTexYScale");
     CheckErrors("gow: render: static: get uniforms");
 
-	glEnable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
-    glDepthMask(true);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    if (renderPass2 == 1) { // if sky
+        glDepthMask(GL_FALSE);
+        glDisable(GL_DEPTH_TEST);
+    } else {
+        glDepthMask(GL_TRUE);
+        glEnable(GL_DEPTH_TEST);
+	}
+    if (renderPass3 == 0) { // if transparent
+		glDisable(GL_BLEND);
+    } else {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	}
+    
     glActiveTexture(GL_TEXTURE0);
-    glClear(GL_DEPTH_BUFFER_BIT);
+    // glClear(GL_DEPTH_BUFFER_BIT);
+	if (renderPass1 == 1 && renderPass2 == 2 && renderPass3 == 0 && renderPass4 == 0) {
+        glClear(GL_DEPTH_BUFFER_BIT);
+    }
 
     glUniform1i(useTextureuniform, 1);
 	
-	u32 renderPass2 = rmem<u32>(cpuRegs.GPR.n.sp.UL[0] + 0x40);
-    u32 renderPass1 = cpuRegs.GPR.n.s3.UL[0];
+
 	if (dumpFrame) {
-        DevCon.Error("#######[frame 0x%07x Static start (render pass %d:%d)",
-			offsets::uFrameCounter, renderPass1, renderPass2);
+        DevCon.Error("#######[frame 0x%07x Static start (render pass %d:%d:%d:%d)",
+			offsets::uFrameCounter, renderPass1, renderPass2, renderPass3, renderPass4);
     }
 	
 	// flashes grouped by texture
@@ -307,7 +353,8 @@ void Renderer::RenderStatic() {
 
 	glm::mat4x4 *lastMatrix = nullptr;
 
-	auto perspectiveMatrix = glm::perspective(glm::pi<float>() * 0.25f, 4.0f / 3.0f, 0.1f, 10000.f);
+	float aspectRatio = float(window->GetWidth()) / float(window->GetHeight());
+    auto perspectiveMatrix = glm::perspective(glm::pi<float>() * 0.35f, aspectRatio, 0.2f, 50000.f);
     glUniformMatrix4fv(projectonMatrixUniform, 1, GL_FALSE, (GLfloat *)&perspectiveMatrix);
 
 	for (u32 iTexGroup = texGroupIndexStart; iTexGroup < texGroupIndexEnd; iTexGroup++) {
@@ -363,7 +410,7 @@ void Renderer::RenderStatic() {
             }
 
 
-			glm::mat4x4 &matrix = matrices[jointId + 1];
+			glm::mat4x4 &matrix = matrices[jointId + matrixOffset];
 
 			if (lastMatrix != &matrix) {
 				if (dumpFrame) {
@@ -436,7 +483,9 @@ void Renderer::EndOfFrame() {
 	if (dumpFrame) {
 		DevCon.WriteLn(Color_Blue, "========= DUMPED FRAME %d =========", offsets::uFrameCounter);
 	}
-	dumpFrame = false;
+    dumpFrame = dumpNextFrame;
+    dumpNextFrame = false;
+
     window->SwapBuffers();
     CheckErrors("swap buffers");
 

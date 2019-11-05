@@ -169,7 +169,7 @@ DebugRenderer::DebugRenderer(wxWindow *parent):
     textSize1->Bind(wxEVT_COMMAND_TEXT_ENTER, &DebugRenderer::OnTextSize1Change, this);
     sizerVertical->Add(textSize1, 0, wxALL, 2);
 
-    textSize2 = new wxTextCtrl(this, wxID_ANY, _("0,001953125"));
+    textSize2 = new wxTextCtrl(this, wxID_ANY, _("1,0"));
     textSize2->SetWindowStyle(textSize2->GetWindowStyle() | wxTE_PROCESS_ENTER);
     textSize2->Bind(wxEVT_COMMAND_TEXT_ENTER, &DebugRenderer::OnTextSize2Change, this);
     sizerVertical->Add(textSize2, 0, wxALL, 2);
@@ -177,6 +177,11 @@ DebugRenderer::DebugRenderer(wxWindow *parent):
 	buttonDumpFrame = new wxButton(this, wxID_ANY, _("Dump frame"));
     buttonDumpFrame->Bind(wxEVT_BUTTON, &DebugRenderer::OnButtonDumpFrame, this);
     sizerVertical->Add(buttonDumpFrame, 0, wxALL, 5);
+
+	textMatrixOffset = new wxTextCtrl(this, wxID_ANY, _("0"));
+    textMatrixOffset->SetWindowStyle(textMatrixOffset->GetWindowStyle() | wxTE_PROCESS_ENTER);
+    textMatrixOffset->Bind(wxEVT_COMMAND_TEXT_ENTER, &DebugRenderer::OnTextMatrixOffsetChange, this);
+    sizerVertical->Add(textMatrixOffset, 0, wxALL, 2);
 }
 
 void DebugRenderer::OnTextSize1Change(wxCommandEvent &event) {
@@ -196,6 +201,16 @@ void DebugRenderer::OnTextSize2Change(wxCommandEvent &event) {
         core->Renderer()->size2 = v;
     } else {
         DevCon.WriteLn("invalid floating %s", textSize2->GetValue());
+    }
+}
+
+void DebugRenderer::OnTextMatrixOffsetChange(wxCommandEvent &event) {
+    long v;
+    if (textMatrixOffset->GetValue().ToLong(&v)) {
+        DevCon.WriteLn("changing matrix offset to %d", v);
+        core->Renderer()->matrixOffset = v;
+    } else {
+        DevCon.WriteLn("invalid matrix offset %s", textMatrixOffset->GetValue());
     }
 }
 

@@ -392,7 +392,7 @@ void MeshManager::HookInstanceCtor() {
 }
 
 void MeshManager::HookAllocatorDtor(u32 allocatorOffset) {
-    DevCon.WriteLn("gow: mesh: Allocator %x destroying", allocatorOffset);
+	int removedMeshes = 0;
 
 	for (auto i = meshes.begin(); i != meshes.end();) {
         if (i->second->GetAllocatorOffset() == allocatorOffset) {
@@ -400,10 +400,13 @@ void MeshManager::HookAllocatorDtor(u32 allocatorOffset) {
             DevCon.Error("gow: mesh: removing: %x", i->first);
 #endif
 			delete i->second;
+            removedMeshes++;
 			i = meshes.erase(i);
 		} else {
 			++i;
 		}
 	}
+    DevCon.WriteLn(Color_Magenta, "gow: mesh: Allocator 0x%.7x (%s) destroying. Removed %d meshes. Left %d meshes.",
+		allocatorOffset, pmem<dynmem::stStackAllocator>(allocatorOffset)->name, removedMeshes, meshes.size());
 }
 

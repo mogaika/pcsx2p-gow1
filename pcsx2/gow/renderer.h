@@ -28,6 +28,7 @@ protected:
 	u32 currentPreviewTexture;
 	bool reloadShadersRequest;
 	bool dumpFrame;
+	bool dumpNextFrame;
 
 	void loadShaders();
     void renderTexturedQuad(GLuint texture);
@@ -37,13 +38,14 @@ public:
 	void CheckErrors(char *phase);
 
 	void RenderFlashes();
-    void RenderStatic();
+    void RenderStaticPasses(u32 renderPass1, u32 renderPass2, u32 renderPass3, u32 renderPass4);
+    void RenderStatic(u32 renderPass1, u32 renderPass2, u32 renderPass3, u32 renderPass4);
 
 	void EndOfFrame();
 	void Setup();
     void ReloadShaders() { reloadShadersRequest = true; };
     void PreviewTextureQuad(u32 textureKey = 0) { currentPreviewTexture = textureKey; };
-    void DumpFrame() { dumpFrame = true; }
+    void DumpFrame() { dumpNextFrame = true; }
 	
 	Shader shader_textured_quad;
     Shader shader_flash;
@@ -51,6 +53,7 @@ public:
 
 	float size1;
 	float size2;
+    u32 matrixOffset;
 };
 
 } // namespace gow
