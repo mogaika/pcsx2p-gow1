@@ -22,16 +22,18 @@ struct stGfx {
     u16 imagesCount;
     u16 transferFormat;
     u16 textureFormat;
-    gap_t _gap22[8];
+	u16 currentImageIndex;
+    gap_t _gap24[6];
     u8 bpp;
-    gap_t _gap2b[5];
+    gap_t _gap2b[4];
+	u8 bytesPerRow;
     u8 flags;
     gap_t _gap31[7];
-    u32 gfxDataOffset;
+    u32 pDmaGfxDataOffset;
     u32 animInstanceOffset;
     gap_t _gap[0x18];
 
-	template <typename T> T *gfxData(u32 index) { return pmemz<T>(gfxDataOffset + (index + 1) * 0x10 + (index * height * width)); }
+	template <typename T> T *gfxData(u32 index) { return pmemz<T>(pDmaGfxDataOffset + 0x10 + index * ((u32(height) * u32(width) * u32(bpp))/ 8 + 0x10)); }
 
 	// not works for pal 
 	bool isSwizzled() { return !(flags & 1); }
@@ -79,9 +81,11 @@ public:
 	Texture(u32 offset, char *name = nullptr);
 	~Texture();
 
+	GLuint GetAnimatedCurrentGL() { return getImageRef(img->gfxInstance()->currentImageIndex); }
 	GLuint GetGl(int index) { return getImageRef(index); }
     char *GetName() { return name; }
     float GetYScale() { return yScale; }
+    raw::stTxr *GetRaw() { return img; }
 };
 
 class TextureManager {

@@ -29,6 +29,7 @@ protected:
 	bool reloadShadersRequest;
 	bool dumpFrame;
 	bool dumpNextFrame;
+	u32 lastRenderPass1;
 
 	void loadShaders();
     void renderTexturedQuad(GLuint texture);

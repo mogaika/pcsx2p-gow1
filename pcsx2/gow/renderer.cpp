@@ -321,13 +321,8 @@ void Renderer::RenderStatic(u32 renderPass1, u32 renderPass2, u32 renderPass3, u
         glDepthMask(GL_TRUE);
         glEnable(GL_DEPTH_TEST);
 	}
-    if (renderPass3 == 0) { // if transparent
-		glDisable(GL_BLEND);
-    } else {
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	}
-    
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glActiveTexture(GL_TEXTURE0);
     // glClear(GL_DEPTH_BUFFER_BIT);
 	if (renderPass1 == 1 && renderPass2 == 2 && renderPass3 == 0 && renderPass4 == 0) {
@@ -381,7 +376,10 @@ void Renderer::RenderStatic(u32 renderPass1, u32 renderPass2, u32 renderPass3, u
 				}
 
 				CheckErrors("gow: render: static: before glBindTexture");
-                glBindTexture(GL_TEXTURE_2D, texture->GetGl(0));
+				if (dumpFrame) {
+					DevCon.WriteLn("texture '%s' image index %d", texture->GetName(), texture->GetRaw()->gfxInstance()->currentImageIndex);
+				}
+                glBindTexture(GL_TEXTURE_2D, texture->GetAnimatedCurrentGL());
                 glUniform1f(textureYScaleUniform, texture->GetYScale());
                 
 				CheckErrors("gow: render: static: after glUniform1f(textureYScaleUniform, texture->GetYScale())");
