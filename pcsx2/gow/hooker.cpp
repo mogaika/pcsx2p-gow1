@@ -58,26 +58,33 @@ void hookAllocatorDtor() {
     managers.mesh->HookAllocatorDtor(allocatorOffset);
 }
 
-void hookRenderFlash() { core->Renderer()->RenderFlashes(); }
-
-u32 _renderStaticRenderPass[4];
-void hookRenderStaticFetchArgs() {
-    _renderStaticRenderPass[0] = cpuRegs.GPR.n.a1.UL[0];
-    _renderStaticRenderPass[1] = cpuRegs.GPR.n.a2.UL[0];
-    _renderStaticRenderPass[2] = cpuRegs.GPR.n.a3.UL[0];
-    _renderStaticRenderPass[3] = cpuRegs.GPR.n.t0.UL[0];
-    core->Renderer()->RenderStaticPasses(_renderStaticRenderPass[0], _renderStaticRenderPass[1], _renderStaticRenderPass[2], _renderStaticRenderPass[3]);
+void hookRenderFlash() {
+	auto flash = pmemz<raw::stRenderFlashUIBase>(cpuRegs.GPR.n.s5);
+	core->Renderer()->Master.HookRenderFlash(flash);
 }
+
+void hookRender3DFetchArgs() {
+    core->Renderer()->Master.HookPass(cpuRegs.pc == 0x1679F8,
+		cpuRegs.GPR.n.a1.UL[0], cpuRegs.GPR.n.a2.UL[0], cpuRegs.GPR.n.a3.UL[0], cpuRegs.GPR.n.t0.UL[0]);
+}
+
 void hookRenderStatic() {
-    u32 renderPass2 = rmem<u32>(cpuRegs.GPR.n.sp.UL[0] + 0x40);
-    u32 renderPass1 = cpuRegs.GPR.n.s3.UL[0];
-    core->Renderer()->RenderStatic(_renderStaticRenderPass[0], _renderStaticRenderPass[1], _renderStaticRenderPass[2], _renderStaticRenderPass[3]);
+	auto groupIndexStart = cpuRegs.GPR.n.v0.UL[0];
+	auto groupIndexEnd = cpuRegs.GPR.n.v1.UL[0];
+	auto binsStructOffset = rmem<u32>(cpuRegs.GPR.n.sp.UL[0] + 0x4C);
+	core->Renderer()->Master.HookRenderStatic(groupIndexStart, groupIndexEnd, binsStructOffset);
+}
+
+void hookRenderDynamic() {
+	auto groupIndexStart = cpuRegs.GPR.n.v0.UL[0];
+	auto groupIndexEnd = cpuRegs.GPR.n.v1.UL[0];
+	auto binsStructOffset = rmem<u32>(cpuRegs.GPR.n.sp.UL[0] + 0xC0);
+	core->Renderer()->Master.HookRenderDynamic(groupIndexStart, groupIndexEnd, binsStructOffset);
 }
 
 void hookWadEventAdded() {
     hooker->DebugFrame().GetWadEvents().OnNewEvent(
-		cpuRegs.GPR.n.a0.US[0], cpuRegs.GPR.n.a1.US[0],
-        cpuRegs.GPR.n.a2.UL[0], pmemz<char>(cpuRegs.GPR.n.a3));
+		cpuRegs.GPR.n.a0.US[0], cpuRegs.GPR.n.a1.US[0], cpuRegs.GPR.n.a2.UL[0], pmemz<char>(cpuRegs.GPR.n.a3));
 }
 
 void Hooker::InitHooks() {
@@ -93,10 +100,13 @@ void Hooker::InitHooks() {
 
 	addHook(0x15770C, hookMeshInstanceCtor); // s0 - pMesh, s3 - pczMeshName
 
-	addHook(0x146354, hookRenderFlash); // s5 - pFlash (first element of forward linked list)
+	addHook(0x146354, hookRenderFlash);
 
+	addHook(0x1658F8, hookRender3DFetchArgs);
 	addHook(0x165B04, hookRenderStatic);
-    addHook(0x1658F8, hookRenderStaticFetchArgs);
+
+	addHook(0x1679F8, hookRender3DFetchArgs);
+    addHook(0x167B8C, hookRenderDynamic);
 
 	addHook(0x1BB0F8, hookWadEventAdded);
 

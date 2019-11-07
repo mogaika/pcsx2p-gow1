@@ -8,6 +8,7 @@
 #define ENABLE_GL_VERSION_3_2
 #define ENABLE_GL_VERSION_3_3
 
+#include <GL/GL.h>
 #include "GL/glext.h"
 
 #include "../plugins/GSdx/Renderers/OpenGL/PFN_GLLOADER_HPP.h"

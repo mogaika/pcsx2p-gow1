@@ -9,7 +9,7 @@ using namespace gow;
 
 DebugFrame::DebugFrame(wxString title):
 	wxFrame(nullptr, wxID_ANY, title) {
-    
+
 	wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
     this->SetSizer(sizer);
 
@@ -30,13 +30,10 @@ DebugFrame::DebugFrame(wxString title):
     SetSize(600, 400);
 }
 
-BEGIN_EVENT_TABLE(DebugMemoryMap, wxPanel)
-EVT_PAINT(DebugMemoryMap::eventPaint)
-END_EVENT_TABLE()
-
 DebugMemoryMap::DebugMemoryMap(wxWindow *parent):
 	wxPanel(parent) {
-    SetWindowStyle(GetWindowStyle() | wxFULL_REPAINT_ON_RESIZE);
+	Bind(wxEVT_PAINT, &DebugMemoryMap::eventPaint, this);
+	Bind(wxEVT_SIZE, &DebugMemoryMap::eventSize, this);
 }
 
 void DebugMemoryMap::AddAllocator(u32 begin, u32 size, char *name) {
@@ -46,8 +43,6 @@ void DebugMemoryMap::AddAllocator(u32 begin, u32 size, char *name) {
 	strcpy(allocator.name, name);
 
 	// search for parent allocator
-	// its start must be closer to start
-	// its end must be > begin+size
 	stStackAllocatorInfo *parent = nullptr;
 	for (auto i = allocators.begin(); i != allocators.end(); ++i) {
         if (i->second.begin < begin && i->second.begin + i->second.size > begin + size) {
@@ -64,6 +59,11 @@ void DebugMemoryMap::AddAllocator(u32 begin, u32 size, char *name) {
 
 void DebugMemoryMap::RemoveAllocator(u32 begin) {
 	allocators.erase(begin);
+}
+
+void DebugMemoryMap::eventSize(wxSizeEvent &evt) {
+	Refresh();
+	evt.Skip();
 }
 
 void DebugMemoryMap::eventPaint(wxPaintEvent &evt) {
@@ -132,11 +132,11 @@ void DebugTextures::OnButtonPreview(wxCommandEvent &event) {
 		return;
 	}
 
-    core->Renderer()->PreviewTextureQuad((u32)texturesList->GetClientData(index));
+	core->Renderer()->TexturePreview.SetTextureTXR((u32) texturesList->GetClientData(index), 0);
 }
 
 void DebugTextures::OnButtonHidePreview(wxCommandEvent &event) {
-	core->Renderer()->PreviewTextureQuad(0);
+	core->Renderer()->TexturePreview.SetTextureGL(0);
 }
 
 void DebugTextures::OnLoadedTexture(u32 offset, char *name) {
@@ -164,54 +164,13 @@ DebugRenderer::DebugRenderer(wxWindow *parent):
     buttonReloadShaders->Bind(wxEVT_BUTTON, &DebugRenderer::OnButtonReloadShaders, this);
     sizerVertical->Add(buttonReloadShaders, 0, wxALL, 5);
 
-    textSize1 = new wxTextCtrl(this, wxID_ANY, _("1,0"));
-    textSize1->SetWindowStyle(textSize1->GetWindowStyle() | wxTE_PROCESS_ENTER);
-    textSize1->Bind(wxEVT_COMMAND_TEXT_ENTER, &DebugRenderer::OnTextSize1Change, this);
-    sizerVertical->Add(textSize1, 0, wxALL, 2);
-
-    textSize2 = new wxTextCtrl(this, wxID_ANY, _("1,0"));
-    textSize2->SetWindowStyle(textSize2->GetWindowStyle() | wxTE_PROCESS_ENTER);
-    textSize2->Bind(wxEVT_COMMAND_TEXT_ENTER, &DebugRenderer::OnTextSize2Change, this);
-    sizerVertical->Add(textSize2, 0, wxALL, 2);
-
 	buttonDumpFrame = new wxButton(this, wxID_ANY, _("Dump frame"));
     buttonDumpFrame->Bind(wxEVT_BUTTON, &DebugRenderer::OnButtonDumpFrame, this);
     sizerVertical->Add(buttonDumpFrame, 0, wxALL, 5);
 
-	textMatrixOffset = new wxTextCtrl(this, wxID_ANY, _("0"));
-    textMatrixOffset->SetWindowStyle(textMatrixOffset->GetWindowStyle() | wxTE_PROCESS_ENTER);
-    textMatrixOffset->Bind(wxEVT_COMMAND_TEXT_ENTER, &DebugRenderer::OnTextMatrixOffsetChange, this);
-    sizerVertical->Add(textMatrixOffset, 0, wxALL, 2);
-}
-
-void DebugRenderer::OnTextSize1Change(wxCommandEvent &event) {
-    double v;
-    if (textSize1->GetValue().ToDouble(&v)) {
-        DevCon.WriteLn("changing size1 to %f", v);
-        core->Renderer()->size1 = v;
-    } else {
-        DevCon.WriteLn("invalid floating %s", textSize1->GetValue());
-    }
-}
-
-void DebugRenderer::OnTextSize2Change(wxCommandEvent &event) {
-    double v;
-    if (textSize2->GetValue().ToDouble(&v)) {
-        DevCon.WriteLn("changing size2 to %f", v);
-        core->Renderer()->size2 = v;
-    } else {
-        DevCon.WriteLn("invalid floating %s", textSize2->GetValue());
-    }
-}
-
-void DebugRenderer::OnTextMatrixOffsetChange(wxCommandEvent &event) {
-    long v;
-    if (textMatrixOffset->GetValue().ToLong(&v)) {
-        DevCon.WriteLn("changing matrix offset to %d", v);
-        core->Renderer()->matrixOffset = v;
-    } else {
-        DevCon.WriteLn("invalid matrix offset %s", textMatrixOffset->GetValue());
-    }
+	checkboxBlueClearColor = new wxCheckBox(this, wxID_ANY, _("Use blue clear color"));
+	checkboxBlueClearColor->Bind(wxEVT_CHECKBOX, &DebugRenderer::OnCheckboxClueClearColor, this);
+	sizerVertical->Add(checkboxBlueClearColor, 0, wxALL, 5);
 }
 
 void DebugRenderer::OnButtonReloadShaders(wxCommandEvent &event) {
@@ -220,6 +179,10 @@ void DebugRenderer::OnButtonReloadShaders(wxCommandEvent &event) {
 
 void DebugRenderer::OnButtonDumpFrame(wxCommandEvent &event) {
     core->Renderer()->DumpFrame();
+}
+
+void DebugRenderer::OnCheckboxClueClearColor(wxCommandEvent &event) {
+	core->Renderer()->Master.blueClearColor = checkboxBlueClearColor->IsChecked();
 }
 
 DebugWadEvents::DebugWadEvents(wxWindow *parent):

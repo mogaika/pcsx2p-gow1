@@ -163,6 +163,9 @@
     <Filter Include="Gow\shaders">
       <UniqueIdentifier>{fd8e2046-7955-4ddc-9386-ee5609db2f8a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Gow\renderers">
+      <UniqueIdentifier>{3bcbf793-ccfd-4acc-b17f-0ff43322cb93}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Utilities\folderdesc.txt">
@@ -216,9 +219,6 @@
     <None Include="..\..\gui\Dialogs\BaseConfigurationDialog.inl">
       <Filter>AppHost\Dialogs</Filter>
     </None>
-    <None Include="..\..\gow\shaders\textured_quad.vert">
-      <Filter>Gow\shaders</Filter>
-    </None>
     <None Include="..\..\gow\shaders\textured_quad.frag">
       <Filter>Gow\shaders</Filter>
     </None>
@@ -233,6 +233,9 @@
     </None>
     <None Include="..\..\gow\shaders\mesh.vert">
       <Filter>Gow\shaders</Filter>
+    </None>
+    <None Include="..\..\gow\shaders\textured_quad.vert">
+      <Filter>Gow</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -937,6 +940,18 @@
     <ClCompile Include="..\..\gow\resources\mesh.cpp">
       <Filter>Gow\resources</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\gow\renderers\flp.cpp">
+      <Filter>Gow\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\gow\renderers\tristripmesh.cpp">
+      <Filter>Gow\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\gow\renderers\texturepreview.cpp">
+      <Filter>Gow\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\gow\renderers\master.cpp">
+      <Filter>Gow\renderers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Patch.h">
@@ -1436,6 +1451,18 @@
     </ClInclude>
     <ClInclude Include="..\..\gow\dynmem.h">
       <Filter>Gow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\gow\renderers\flp.h">
+      <Filter>Gow\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\gow\renderers\tristripmesh.h">
+      <Filter>Gow\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\gow\renderers\texturepreview.h">
+      <Filter>Gow\renderers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\gow\renderers\master.h">
+      <Filter>Gow\renderers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

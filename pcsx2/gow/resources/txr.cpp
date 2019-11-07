@@ -79,7 +79,7 @@ void Texture::generateTextures(raw::stGfx *pal) {
         memcpy(pallete, paldata, palleteSize * sizeof(u32));
     }
 
-	core->Window()->AttachContext();
+	auto glContext = core->Window()->AttachContext();
 	glGenTextures(imagesCount, &getImageRef(0));
     core->Renderer()->CheckErrors("gen texture");
 
@@ -152,7 +152,6 @@ void Texture::generateTextures(raw::stGfx *pal) {
 		}
 	}
 
-    core->Window()->DetachContext();
 	delete[] pallete;
 }
 

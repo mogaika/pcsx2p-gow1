@@ -15,12 +15,14 @@ uniform float size2;
 void main() {
 	vec4 color;
 
-	color = vec4(fVertexColor.rgb, fVertexColor.a * (255.0 / 128.0));
+	color = fVertexColor * (255.0 / 128.0);
 
 	if (uUseTexture) {
 		vec4 textureColor = texture(uTexture, vec2(fTexCoord.x, fTexCoord.y));
 		color *= vec4(textureColor.xyz, textureColor.a * (255.0 / 128.0));
 	}
+
+	color = color * uBlendColor;
 
 	oFragColor = color;
 }

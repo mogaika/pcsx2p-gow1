@@ -113,6 +113,7 @@ struct stMeshObject {
     };
 	stDmaTag dmaTags[0];
 
+	bool isUseInvertedMatrix() { return flags & 0x40; }
 	void setMeshObject(MeshObject *meshObject) { this->pMeshObject = meshObject; }
 	MeshObject *meshObject() { return pMeshObject; }
 	u32 totalDmaTagsCount() { return u32(dmaTagsPerProgram) * u32(instancesCount) * u32(textureLayersCount); }
@@ -217,6 +218,7 @@ public:
 	~MeshObject();
 
 	std::vector<dma_program_t> &GetPrograms() { return arrays; }
+	dma_program_t &GetProgram(u32 instanceId, u32 materialLayer) { return arrays[instanceId  + materialLayer]; }
 	Mesh &getMesh() { return *mesh; }
 };
 

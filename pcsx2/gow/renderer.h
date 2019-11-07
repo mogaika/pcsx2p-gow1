@@ -1,10 +1,15 @@
 #pragma once
 
+#include "gow/gl.h"
 #include "gow/glwindow.h"
 #include "gow/utils.h"
-#include "gow/resources/mesh.h"
-#include "gow/resources/flp.h"
-#include "gow/resources/renderer.h"
+
+namespace gow {
+	class Renderer;
+}
+
+#include "gow/renderers/texturepreview.h"
+#include "gow/renderers/master.h"
 
 namespace gow {
 
@@ -24,37 +29,46 @@ public:
 class Renderer {
 protected:
 	Window *window;
-
-	u32 currentPreviewTexture;
 	bool reloadShadersRequest;
 	bool dumpFrame;
 	bool dumpNextFrame;
-	u32 lastRenderPass1;
+	wxString dumpPrefix;
 
 	void loadShaders();
-    void renderTexturedQuad(GLuint texture);
+
+	friend class DumpContext;
+	class DumpContext {
+	protected:
+		wxString savedPrefix;
+		Renderer &r;
+	public:
+		DumpContext(Renderer &r, char *suffix):
+			r(r) {
+			savedPrefix = r.dumpPrefix;
+			r.dumpPrefix = r.dumpPrefix.Append(suffix).Append(": ");
+		};
+		~DumpContext() { r.dumpPrefix = savedPrefix; };
+		void Log(ConsoleColors color, char *format, ...);
+	};
 public:
 	Renderer(Window *window);
 
 	void CheckErrors(char *phase);
 
-	void RenderFlashes();
-    void RenderStaticPasses(u32 renderPass1, u32 renderPass2, u32 renderPass3, u32 renderPass4);
-    void RenderStatic(u32 renderPass1, u32 renderPass2, u32 renderPass3, u32 renderPass4);
+	Window &Window() { return *window; };
 
 	void EndOfFrame();
 	void Setup();
     void ReloadShaders() { reloadShadersRequest = true; };
-    void PreviewTextureQuad(u32 textureKey = 0) { currentPreviewTexture = textureKey; };
     void DumpFrame() { dumpNextFrame = true; }
+	DumpContext LogDumpPush(char *suffix) { return DumpContext(*this, suffix); }
 	
 	Shader shader_textured_quad;
     Shader shader_flash;
     Shader shader_mesh;
 
-	float size1;
-	float size2;
-    u32 matrixOffset;
+	renderers::TexturePreview TexturePreview;
+	renderers::Master Master;
 };
 
 } // namespace gow

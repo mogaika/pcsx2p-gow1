@@ -133,7 +133,7 @@ void Window::CreateContext(int major, int minor) {
 		return;
     }
 
-	AttachContext();
+	attachContext();
 
 	SetLastError(0);
 	PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC) GetProcAddress("wglCreateContextAttribsARB");
@@ -157,7 +157,7 @@ void Window::CreateContext(int major, int minor) {
         context_new = wglCreateContextAttribsARB(display, NULL, context_attribs);
     }
 
-    DetachContext();
+    detachContext();
 
 	if (!context_new) {
         DevCon.Error("Failed to create a 3.x context with compatible flags");
@@ -167,7 +167,7 @@ void Window::CreateContext(int major, int minor) {
 
     context = context_new;
 
-	AttachContext();
+	attachContext();
 
 	wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC) GetProcAddress("wglSwapIntervalEXT");
     wglGetExtensionsStringARB = (PFNWGLGETEXTENSIONSSTRINGARBPROC) GetProcAddress("wglGetExtensionsStringARB");
@@ -181,7 +181,7 @@ void Window::CreateContext(int major, int minor) {
 
 	updateViewPort();
 
-	DetachContext();
+	detachContext();
 }
 
 void Window::updateViewPort() {
@@ -192,25 +192,25 @@ void Window::updateViewPort() {
     glViewport(0, 0, width, height);
 }
 
-void Window::AttachContext() {
+void Window::attachContext() {
 	if (!contextAttached) {
 		if (!wglMakeCurrent(display, context)) {
             DevCon.Error("gow: Opengl: Can't attach to context: %d", GetLastError());
 		}
         contextAttached = true;
     } else {
-        // DevCon.Error("gow: Opengl: Trying to attach when already attached");
+        DevCon.Error("gow: Opengl: Trying to attach when already attached");
 	}
 }
 
-void Window::DetachContext() {
+void Window::detachContext() {
     if (contextAttached) {
         if (!wglMakeCurrent(NULL, NULL)) {
             DevCon.Error("gow: Opengl: Can't detach from context: %d", GetLastError());
         }
         contextAttached = false;
     } else {
-        // DevCon.Error("gow: Opengl: Trying to detach when already detached");
+        DevCon.Error("gow: Opengl: Trying to detach when already detached");
     }
 }
 
@@ -223,17 +223,10 @@ void Window::SwapBuffers() {
     ::SwapBuffers(display);
 
 	if (doUpdateViewport) {
-		bool detachAfter = false;
-        if (!contextAttached) {
-            AttachContext();
-			detachAfter = true;
-        }
+		auto glContext = AttachContext();
 
 		updateViewPort();
 
-		if (detachAfter) {
-			DetachContext();
-        }
 		doUpdateViewport = false;
     }
 }

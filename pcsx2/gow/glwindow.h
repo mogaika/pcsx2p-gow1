@@ -18,14 +18,34 @@ protected:
 
 	void updateViewPort();
 	void loadGl();
+
+	void attachContext();
+	void detachContext();
+
+	friend class Context;
+	class Context {
+		bool detach;
+		Window &w;
+	public:
+		Context(Window &w): w(w) {
+			if (w.contextAttached) {
+				detach = false;
+			} else {
+				w.attachContext();
+				detach = true;
+			}
+		};
+		~Context() { if (detach) { w.detachContext(); } };
+	};
 public:
 	Window();
 	~Window();
 
     void Create();
     void CreateContext(int major, int minor);
-	void AttachContext();
-	void DetachContext();
+
+	Context AttachContext() { return Context(*this); }
+
     void Destroy();
 	void SwapBuffers();
     void *GetProcAddress(char *name);

@@ -44,10 +44,10 @@ public:
     DebugMemoryMap(wxWindow *parent);
 
     void eventPaint(wxPaintEvent &evt);
+	void eventSize(wxSizeEvent &evt);
 
     void AddAllocator(u32 begin, u32 size, char *name);
     void RemoveAllocator(u32 begin);
-    DECLARE_EVENT_TABLE()
 };
 
 class DebugTextures : public wxPanel {
@@ -71,17 +71,13 @@ public:
 class DebugRenderer : public wxPanel {
 protected:
 	wxButton *buttonReloadShaders;
-    wxTextCtrl *textSize1;
-    wxTextCtrl *textSize2;
-    wxTextCtrl *textMatrixOffset;
+    wxCheckBox *checkboxBlueClearColor;
     wxButton *buttonDumpFrame;
 
 public:
     DebugRenderer(wxWindow *parent);
 
-    void OnTextSize1Change(wxCommandEvent &event);
-    void OnTextSize2Change(wxCommandEvent &event);
-    void OnTextMatrixOffsetChange(wxCommandEvent &event);
+    void OnCheckboxClueClearColor(wxCommandEvent &event);
     void OnButtonReloadShaders(wxCommandEvent &event);
     void OnButtonDumpFrame(wxCommandEvent &event);
 };

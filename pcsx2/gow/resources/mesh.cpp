@@ -55,13 +55,12 @@ Mesh::~Mesh() {
 MeshObject::MeshObject(Mesh *mesh, raw::stMeshObject *object):
 	object(object),
 	mesh(mesh) {
-    core->Window()->AttachContext();
+	auto glContext = core->Window()->AttachContext();
 	decompilePackets();
-    core->Window()->DetachContext();
 }
 
 MeshObject::~MeshObject() {
-    core->Window()->AttachContext();
+	auto glContext = core->Window()->AttachContext();
     for (auto i = arrays.begin(); i != arrays.end(); ++i) {
 		auto program = *i;
 		for (auto j = program.begin(); j != program.end(); ++j) {
@@ -72,7 +71,6 @@ MeshObject::~MeshObject() {
     for (auto i = buffers.begin(); i != buffers.end(); ++i) {
         glDeleteBuffers(1, &i->second);
     }
-    core->Window()->DetachContext();
 }
 
 MeshObject::stProgram MeshObject::stDecomileState::getProgram() {
@@ -319,8 +317,9 @@ void MeshObject::decompileVifProgram(raw::stVifTag *vifStart, raw::stVifTag *vif
     }
 }
 
-void  MeshObject::decompileDmaProgram(raw::stDmaTag *dmaProgram, dma_program_t &program) {
-    for (raw::stDmaTag *tag = dmaProgram;; tag = pointer_add(tag, 0x10)) {
+void MeshObject::decompileDmaProgram(raw::stDmaTag *dmaProgram, dma_program_t &program) {
+    raw::stDmaTag *tag = dmaProgram;
+    for (u32 i = 0; i < object->dmaTagsPerProgram; tag = pointer_add(tag, 0x10), i++) {
 		switch (tag->id()) {
             case raw::stDmaTag::ID_RET:
 				return;
@@ -343,7 +342,7 @@ void  MeshObject::decompileDmaProgram(raw::stDmaTag *dmaProgram, dma_program_t &
 				}
 				break;
             default:
-				DevCon.Error("gow: mesh: Unknown dma tag 0x%x (0x%x) (0x%x)", tag->id(), tag->_tag, tag);
+				DevCon.Error("gow: mesh: %s Unknown dma tag 0x%x (0x%x) (0x%x)", this->getMesh().getName(), tag->id(), tag->_tag, tag);
 				return;
 		}
     }
@@ -351,17 +350,20 @@ void  MeshObject::decompileDmaProgram(raw::stDmaTag *dmaProgram, dma_program_t &
 
 void MeshObject::decompilePackets() {
     // DevCon.WriteLn("decompiling object 0x%x", object);
-	for (u32 iLayer = 0; iLayer < object->textureLayersCount; iLayer++) {
-		for (u32 iInstance = 0; iInstance < object->instancesCount; iInstance++) {
-           // DevCon.WriteLn("         layer 0x%x instance 0x%x", iLayer, iInstance);
+    if (object->instancesCount != 1 && object->textureLayersCount != 1) {
+        DevCon.Error("mesh %s instancesCount: %d textureLayersCount: %d",
+			mesh->getName(), object->instancesCount, object->textureLayersCount);
+    }
+    u32 programsCount = object->instancesCount * object->textureLayersCount;
+    for (u32 i = 0; i < programsCount; i++) {
+        // DevCon.WriteLn("         layer 0x%x instance 0x%x", iLayer, iInstance);
 
-			auto dmaTag = pointer_add(object->dmaTags, iLayer * iInstance * 0x10);
+		auto dmaTag = pointer_add(object->dmaTags, i * 0x10);
 
-			//DevCon.WriteLn("         dma prog offset 0x%x", dmaTag);
-			dma_program_t program;
-            decompileDmaProgram(dmaTag, program);
-			arrays.push_back(program);
-		}
+		//DevCon.WriteLn("         dma prog offset 0x%x", dmaTag);
+		dma_program_t program;
+        decompileDmaProgram(dmaTag, program);
+		arrays.push_back(program);
 	}
 }
 

@@ -29,7 +29,7 @@ void main() {
 
 	// pos = pos * size2;
 	// TODO: these constans can vary, detect where viewport size is setted
-	pos = vec4(pos.xy * vec2(0.0016, 0.00209), 0.0, 1.0);
+	pos = vec4(pos.xy * vec2(0.001565, 0.00208), 0.0, 1.0);
 
 	gl_Position = pos;
 }

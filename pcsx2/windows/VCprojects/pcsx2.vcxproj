@@ -183,6 +183,10 @@
     <ClCompile Include="..\..\gow\gow.cpp" />
     <ClCompile Include="..\..\gow\hooker.cpp" />
     <ClCompile Include="..\..\gow\renderer.cpp" />
+    <ClCompile Include="..\..\gow\renderers\flp.cpp" />
+    <ClCompile Include="..\..\gow\renderers\master.cpp" />
+    <ClCompile Include="..\..\gow\renderers\texturepreview.cpp" />
+    <ClCompile Include="..\..\gow\renderers\tristripmesh.cpp" />
     <ClCompile Include="..\..\gow\resources\mesh.cpp" />
     <ClCompile Include="..\..\gow\resources\txr.cpp" />
     <ClCompile Include="..\..\gui\AppGameDatabase.cpp" />
@@ -458,6 +462,10 @@
     <ClInclude Include="..\..\gow\gow.h" />
     <ClInclude Include="..\..\gow\hooker.h" />
     <ClInclude Include="..\..\gow\renderer.h" />
+    <ClInclude Include="..\..\gow\renderers\flp.h" />
+    <ClInclude Include="..\..\gow\renderers\master.h" />
+    <ClInclude Include="..\..\gow\renderers\texturepreview.h" />
+    <ClInclude Include="..\..\gow\renderers\tristripmesh.h" />
     <ClInclude Include="..\..\gow\resources\flp.h" />
     <ClInclude Include="..\..\gow\resources\material.h" />
     <ClInclude Include="..\..\gow\resources\mesh.h" />
