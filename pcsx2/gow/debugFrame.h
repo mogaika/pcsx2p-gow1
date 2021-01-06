@@ -5,6 +5,7 @@
 #include "wx/notebook.h"
 #include "wx/textctrl.h"
 #include "wx/treectrl.h"
+#include "wx/dataview.h"
 
 #include <map>
 
@@ -20,6 +21,7 @@ class DebugMemoryMap;
 class DebugTextures;
 class DebugRenderer;
 class DebugWadEvents;
+class DebugServers;
 
 class DebugFrame : public wxFrame {
 protected:
@@ -28,12 +30,14 @@ protected:
     DebugTextures *tabTextures;
 	DebugRenderer *tabRenderer;
 	DebugWadEvents *tabWadEvents;
+	// DebugServers *tabServers;
 
 public:
     DebugFrame(wxString title);
 	DebugMemoryMap &GetMemoryMap() { return *tabMemmap; }
     DebugTextures &GetTextures() { return *tabTextures; }
     DebugWadEvents &GetWadEvents() { return *tabWadEvents; }
+	// DebugServers &GetServers() { return *DebugServers; }
 };
 
 class DebugMemoryMap : public wxPanel {
@@ -73,6 +77,7 @@ protected:
 	wxButton *buttonReloadShaders;
     wxCheckBox *checkboxBlueClearColor;
     wxButton *buttonDumpFrame;
+	wxButton *buttonDumpHashes;
 
 public:
     DebugRenderer(wxWindow *parent);
@@ -80,6 +85,7 @@ public:
     void OnCheckboxClueClearColor(wxCommandEvent &event);
     void OnButtonReloadShaders(wxCommandEvent &event);
     void OnButtonDumpFrame(wxCommandEvent &event);
+	void OnButtonDumpHashes(wxCommandEvent &event);
 };
 
 class DebugWadEvents : public wxPanel {
@@ -90,6 +96,16 @@ public:
 	DebugWadEvents(wxWindow *parent);
 	
 	void OnNewEvent(u16 eventId, u16 param1, u32 param2, char *name);
+};
+
+class DebugServers : public wxPanel {
+protected:
+	void UpdateServerList();
+
+	wxTreeCtrl *treeServers;
+
+public:
+	DebugServers(wxWindow *parent);
 };
 
 } // namespace gow

@@ -45,6 +45,9 @@ void hookCStackAllocatorCtor() {
 void hookCStackAllocatorDtor() {
     hooker->DebugFrame().GetMemoryMap().RemoveAllocator(cpuRegs.GPR.n.a0.UL[0]);
     hooker->HaveUpdates();
+
+	u32 allocatorOffset = cpuRegs.GPR.n.a0.UL[0];
+	managers.mesh->HookAllocatorDtor(allocatorOffset);
 }
 
 void hookIdleStepFrame() { hooker->BeforeFrame(); }
@@ -87,6 +90,29 @@ void hookWadEventAdded() {
 		cpuRegs.GPR.n.a0.US[0], cpuRegs.GPR.n.a1.US[0], cpuRegs.GPR.n.a2.UL[0], pmemz<char>(cpuRegs.GPR.n.a3));
 }
 
+bool hookHashIsUpper;
+uint32_t hookHashpStr;
+uint32_t hookHashInit;
+void hookHashBegin() {
+	hookHashIsUpper = (cpuRegs.pc == 0x175780);
+	hookHashpStr = cpuRegs.GPR.n.a0.UL[0];
+	hookHashInit = cpuRegs.GPR.n.a1.UL[0];
+}
+
+void hookHashReturn() {
+	uint32_t h = cpuRegs.GPR.n.a1.UL[0];
+	auto key = std::pair<uint32_t, uint32_t>(h, hookHashInit);
+
+	/*if (hooker->hashesMap.find(key) == hooker->hashesMap.end()) {
+		std::string s(pmemz<char>(hookHashpStr));
+		if (hookHashIsUpper) {
+			for (auto & c : s) c = toupper(c);
+		}
+
+		hooker->hashesMap.insert({key, s});
+	}*/
+}
+
 void Hooker::InitHooks() {
 	DevCon.WriteLn("gow hooker initializing");
 
@@ -110,7 +136,10 @@ void Hooker::InitHooks() {
 
 	addHook(0x1BB0F8, hookWadEventAdded);
 
-	addHook(0x13D8A0, hookAllocatorDtor);
+	addHook(0x175740, hookHashBegin);
+	addHook(0x175774, hookHashReturn);
+	addHook(0x175780, hookHashBegin);
+	addHook(0x1757CC, hookHashReturn);
 
     DevCon.WriteLn("gow hooker initialized");
 }

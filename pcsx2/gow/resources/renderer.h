@@ -58,8 +58,11 @@ static_assert(sizeof(stRenderFlashTriStrip) == 0x18, "stRenderFlashTriStrip size
 
 struct stCViewport {
 	glm::mat4 matrices[12];
+	// 0x300
+	glm::vec4 vectors[6];
+	
+	u32 __cameraOffsetsList[2];
 
-	gap_t _gap0x000[0x68];
 	float heightMultiplyer2;
 	float heightMultiplyer1;
 	float _unk0x370;
@@ -98,7 +101,7 @@ protected:
 	u32 offset;
 public:
 	ps_pointer_wrapper_t(u32 offset) : offset(offset) {};
-	T *operator->() const { return *pmemz<T*>(offset) };
+	T *operator->() const { return pmemz<T>(offset); };
 	operator bool() const { return pmemz<T>(offset) != 0; };
 };
 

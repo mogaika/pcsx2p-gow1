@@ -75,7 +75,7 @@ MeshObject::~MeshObject() {
 
 MeshObject::stProgram MeshObject::stDecomileState::getProgram() {
     // attibutes indexes:
-    //  0 - pos
+    //  0 - pos, weights
     //  1 - uv
     //  2 - color
     //  3 - normal
@@ -87,25 +87,25 @@ MeshObject::stProgram MeshObject::stDecomileState::getProgram() {
 
     core->Renderer()->CheckErrors("glBindVertexArray");
 	if (!xyzw) {
-		DevCon.Error("Empty xyzw buffer");	
+		DevCon.Error("Empty xyzw buffer");
 	}
 
     glBindBuffer(GL_ARRAY_BUFFER, xyzw);
     core->Renderer()->CheckErrors("glBindBuffer");
     glEnableVertexAttribArray(0);
     core->Renderer()->CheckErrors("glEnableVertexAttribArray");
-    glVertexAttribPointer(0, 3, GL_SHORT, GL_FALSE, 8, NULL);
+    glVertexAttribPointer(0, 4, GL_SHORT, GL_FALSE, 0, NULL);
     core->Renderer()->CheckErrors("glVertexAttribPointer");
 	
 	if (uv) {
         glBindBuffer(GL_ARRAY_BUFFER, uv);
 		glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, uvWidth == 16 ? GL_SHORT : GL_INT, GL_FALSE, 0, NULL);
+        glVertexAttribPointer(1, 2, (uvWidth == 16) ? GL_SHORT : GL_INT, GL_FALSE, 0, NULL);
     }
 
 	if (rgba) {
         glBindBuffer(GL_ARRAY_BUFFER, rgba);
-        glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, NULL);
+        glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_FALSE, 0, NULL);
         glEnableVertexAttribArray(2);
 	}
 	
@@ -148,8 +148,13 @@ u32 MeshObject::decompileVifUnpack(raw::stVifTag *vif, stDecomileState &state) {
 	u8 *data = (u8*)(u32(vif) + 4);
 	u8 *dataEnd = data + dataSize;
 
+#ifdef GOW_MESH_DEBUG
+	DevCon.WriteLn("unpack cmd 0x%x components 0x%x width 0x%x dataSize 0x%x target 0x%x",
+		cmd, componentsCount, width, dataSize, target);
+#endif
+
 	/*
-	DevCon.WriteLn("unpack vif 0x%x", vif);
+	
 	for (auto p = data;p < dataEnd;) {
         wxString line;
 		for (u32 i = 0; i < 16; i++) {
@@ -261,7 +266,11 @@ u32 MeshObject::decompileVifUnpack(raw::stVifTag *vif, stDecomileState &state) {
                 state.indexesCount = indexesCount;
 			} else if (width == 8) { // color uint8[4]
                 handled = true;
-                state.rgba = buffer;
+				if (state.rgba) {
+					// game developers bug, for multi-layer models they include rgba twice
+					// DevCon.WriteLn("Error: duplicate rgba data: 0x%x", data);
+				}
+				state.rgba = buffer;
 				// DevCon.WriteLn("              color");
 			}
 		} else if (componentsCount == 3) {
@@ -286,13 +295,12 @@ u32 MeshObject::decompileVifUnpack(raw::stVifTag *vif, stDecomileState &state) {
 	return dataSize;
 }
 
-void MeshObject::decompileVifProgram(raw::stVifTag *vifStart, raw::stVifTag *vifEnd, dma_program_t &program) {
-    stDecomileState state;
-	state.reset();
-
+void MeshObject::decompileVifProgram(raw::stVifTag *vifStart, raw::stVifTag *vifEnd, dma_program_t &program, stDecomileState &state) {
 	for (raw::stVifTag *vif = vifStart; vif != vifEnd; vif++) {
 		auto cmd = vif->cmd();
-        // DevCon.WriteLn("vif 0x%x cmd 0x%x", vif, cmd);
+#ifdef GOW_MESH_DEBUG
+        DevCon.WriteLn("vif 0x%x cmd 0x%x", vif, cmd);
+#endif
 		if (cmd > 0x60) {
 			// vif unpack
 			// create vbo/ebo
@@ -300,7 +308,9 @@ void MeshObject::decompileVifProgram(raw::stVifTag *vifStart, raw::stVifTag *vif
         } else if (cmd == raw::stVifTag::CMD_MSCAL) {
 			// call rendering program
 			// create vao
-			//DevCon.WriteLn("created program for vif 0x%x", vif);
+#ifdef GOW_MESH_DEBUG
+			DevCon.WriteLn("vif CMD_MSCAL", vif, cmd);
+#endif
 			program.push_back(state.getProgram());
 			state.reset();
         } else if (cmd == raw::stVifTag::CMD_STROW) {
@@ -312,25 +322,31 @@ void MeshObject::decompileVifProgram(raw::stVifTag *vifStart, raw::stVifTag *vif
 			break;
 		}
 	}
-	if (state.xyzw) {
-        program.push_back(state.getProgram());
-    }
 }
 
 void MeshObject::decompileDmaProgram(raw::stDmaTag *dmaProgram, dma_program_t &program) {
+	stDecomileState state;
+	state.reset();
+
+	bool dmaRet = false;
     raw::stDmaTag *tag = dmaProgram;
     for (u32 i = 0; i < object->dmaTagsPerProgram; tag = pointer_add(tag, 0x10), i++) {
 		switch (tag->id()) {
-            case raw::stDmaTag::ID_RET:
-				return;
+            case raw::stDmaTag::ID_RET: {
+					decompileVifProgram(tag->subdatab<raw::stVifTag>(), tag->subdatae<raw::stVifTag>(), program, state);
+					dmaRet = true;
+				}
+				break;
             case raw::stDmaTag::ID_REF: {
+					decompileVifProgram(tag->subdatab<raw::stVifTag>(), tag->subdatae<raw::stVifTag>(), program, state);
+
 					raw::stVifTag *vifProgramBegin = pmem<raw::stVifTag>(tag->addr());
 					raw::stVifTag *vifProgramEnd = pointer_add(vifProgramBegin, tag->qwc() * 0x10);
 
 					//DevCon.Error("gow: mesh: dma tag 0x%x (0x%x) (0x%x) vif prog 0x%x:0x%x",
 					//			 tag->id(), tag->_tag, tag, vifProgramBegin, vifProgramEnd);
 
-					decompileVifProgram(vifProgramBegin, vifProgramEnd, program);
+					decompileVifProgram(vifProgramBegin, vifProgramEnd, program, state);
 					static int totalvao = 0;
 					totalvao += program.size();
 #ifdef GOW_MESH_DEBUG
@@ -342,10 +358,14 @@ void MeshObject::decompileDmaProgram(raw::stDmaTag *dmaProgram, dma_program_t &p
 				}
 				break;
             default:
-				DevCon.Error("gow: mesh: %s Unknown dma tag 0x%x (0x%x) (0x%x)", this->getMesh().getName(), tag->id(), tag->_tag, tag);
+				DevCon.Error("gow: mesh: %s Unknown dma tag 0x%x (0x%x) (0x%x)", this->getMesh()->getName(), tag->id(), tag->_tag, tag);
 				return;
 		}
+		if (dmaRet) { break; }
     }
+	if (!dmaRet) {
+		DevCon.Error("DMA PARSER: Quit without dma ret");
+	}
 }
 
 void MeshObject::decompilePackets() {
@@ -358,7 +378,7 @@ void MeshObject::decompilePackets() {
     for (u32 i = 0; i < programsCount; i++) {
         // DevCon.WriteLn("         layer 0x%x instance 0x%x", iLayer, iInstance);
 
-		auto dmaTag = pointer_add(object->dmaTags, i * 0x10);
+		auto dmaTag = pointer_add(object->dmaTags, i * 0x10 * object->dmaTagsPerProgram);
 
 		//DevCon.WriteLn("         dma prog offset 0x%x", dmaTag);
 		dma_program_t program;

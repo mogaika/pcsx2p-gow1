@@ -117,6 +117,7 @@ static std::map<u32, execution_hook_t> hooks;
 
 void addHook(u32 addr, execution_hook_t hook)
 {
+	assert(hooks.find(addr) == hooks.end());
     hooks[addr] = hook;
     DevCon.WriteLn("Inserted hook at @0x%x (hook addr @0x%x)", addr, hook);
 }

@@ -26,10 +26,10 @@ void renderers::Master::HookPass(bool isDynamic, u32 renderPass1, u32 renderPass
 
 	/*
 	steps:
-		1 - prepare reflections render
-		2 - prepare stensil buffers to mask mirrors (do not draw depth + color)
-		3 - prepare sky render (use setnsil buffer to mask mirrors)
-		4 - prepare world render: depth clear after sky, disable stensil
+		1 - reflections render
+		2 - stensil buffers to mask mirrors (do not draw depth + color)
+		3 - sky render (use setnsil buffer to mask mirrors)
+		4 - world render: depth clear after sky, disable stensil
 	*/
 
 	int newStep = step;
@@ -60,7 +60,7 @@ void renderers::Master::HookPass(bool isDynamic, u32 renderPass1, u32 renderPass
 
 	if (newStep != step) {
 		dump.Log(Color_Blue, "Step changed to 0x%x (prev: 0x%x)", newStep, step);
-		writeDepth = true;
+		
 		switch (newStep) {
 		case 1:
 		case 4:
@@ -68,6 +68,7 @@ void renderers::Master::HookPass(bool isDynamic, u32 renderPass1, u32 renderPass
 			glDepthMask(GL_TRUE);
 			glDisable(GL_STENCIL_TEST);
 			glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+			maskMirrors = false;
 
 			glClear(GL_DEPTH_BUFFER_BIT);
 			break;
@@ -77,7 +78,7 @@ void renderers::Master::HookPass(bool isDynamic, u32 renderPass1, u32 renderPass
 			glEnable(GL_STENCIL_TEST);
 			glStencilFunc(GL_ALWAYS, 1, 0xFF);
 			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-			writeDepth = false;
+			maskMirrors = true;
 
 			glClear(GL_STENCIL_BUFFER_BIT);
 			break;
@@ -87,6 +88,7 @@ void renderers::Master::HookPass(bool isDynamic, u32 renderPass1, u32 renderPass
 			glEnable(GL_STENCIL_TEST);
 			glStencilFunc(GL_EQUAL, 0, 0xFF);
 			glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+			maskMirrors = false;
 
 			glClear(GL_DEPTH_BUFFER_BIT);
 			break;
@@ -96,9 +98,13 @@ void renderers::Master::HookPass(bool isDynamic, u32 renderPass1, u32 renderPass
 		step = newStep;
 	}
 
-	dump.Log(Color_Black, "----------- [frame 0x%07x %s pass (render pass %d:%d:%d:%d)",
-		offsets::uFrameCounter, isDynamic ? "Dynamic" : "Static",
-		renderPass1, renderPass2, renderPass3, renderPass4);
+	if (r.IsDumpingFrame()) {
+		static wxString dynamicString = wxString("Dynamic");
+		static wxString staticString = wxString("Static");
+		dump.Log(Color_StrongBlue, "------ [frame 0x%07x %s pass (render pass %d:%d:%d:%d)]",
+			offsets::uFrameCounter, (isDynamic ? dynamicString : staticString).c_str().AsInternal(),
+			renderPass1, renderPass2, renderPass3, renderPass4);
+	}
 }
 
 void renderers::Master::Setup() {
@@ -111,8 +117,9 @@ void renderers::Master::FrameBegin() {
 	currentPass = stPass();
 
 	glClearColor(0.0, 0.0, blueClearColor ? 1.0 : 0.0, 1.0);
-	glClearDepth(50000.0);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClearDepth(10000.0);
+	glClearStencil(0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	r.CheckErrors("FrameBegin");
 }

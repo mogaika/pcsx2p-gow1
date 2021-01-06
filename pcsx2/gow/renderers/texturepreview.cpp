@@ -6,8 +6,8 @@
 
 using namespace gow;
 
-renderers::TexturePreview::TexturePreview():
-	currentTexture(0) {
+renderers::TexturePreview::TexturePreview(class gow::Renderer &r):
+	currentTexture(0), renderer(r) {
 	initializeQuad();
 }
 
@@ -22,6 +22,8 @@ void renderers::TexturePreview::SetTextureTXR(u32 textureKey, u32 imageIndex) {
 }
 
 void renderers::TexturePreview::initializeQuad() {
+	auto context = renderer.Window().AttachContext();
+
     static float vertices[] = {
         //    positions     texture coords
         0.5f,   0.5f, 0.0f, 1.0f, 1.0f,   // top right
@@ -54,16 +56,16 @@ void renderers::TexturePreview::initializeQuad() {
     glEnableVertexAttribArray(1);
 }
 
-void renderers::TexturePreview::Render(Renderer &r) {
+void renderers::TexturePreview::Render() {
 	if (currentTexture == 0) {
 		return;
 	}
 
-	auto log = r.LogDumpPush("TexturePreview");
+	auto log = renderer.LogDumpPush("TexturePreview");
 
-	auto glContext = r.Window().AttachContext();
-	r.shader_textured_quad.Use();
-    r.CheckErrors("use shader quad");
+	auto glContext = renderer.Window().AttachContext();
+	renderer.shader_textured_quad.Use();
+	renderer.CheckErrors("use shader quad");
 
 	glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
@@ -75,8 +77,10 @@ void renderers::TexturePreview::Render(Renderer &r) {
     glBindTexture(GL_TEXTURE_2D, currentTexture);
 
 	glBindVertexArray(quad_vao);
+	renderer.CheckErrors("glBindVertexArray");
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quad_ebo);
+	renderer.CheckErrors("glBindBuffer");
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-	r.CheckErrors("draw elements");
+	renderer.CheckErrors("draw elements");
 }

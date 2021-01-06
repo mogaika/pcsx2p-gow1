@@ -29,7 +29,7 @@ Renderer::Renderer(gow::Window *window):
 	dumpFrame(false),
 	dumpNextFrame(false),
 	Master(*this),
-	TexturePreview() {
+	TexturePreview(*this) {
 	Setup();
 	auto glContext = window->AttachContext();
 	Master.FrameBegin();
@@ -58,7 +58,7 @@ void Renderer::EndOfFrame() {
 
 	Master.FrameEnd();
 
-	TexturePreview.Render(*this);
+	TexturePreview.Render();
 
 	LogDumpPush("CORE").Log(Color_Blue, "#### ========= DUMPED FRAME %d ========= ####", offsets::uFrameCounter);
 
@@ -76,16 +76,24 @@ void Renderer::EndOfFrame() {
 	Master.FrameBegin();
 }
 
-void Renderer::DumpContext::Log(ConsoleColors color, char *format, ...) {
+void Renderer::DumpContext::Log(ConsoleColors color, const char *format, ...) {
 	if (!r.dumpFrame) {
 		return;
 	}
+
 	va_list args;
 	va_start(args, format);
-
-	DevCon.WriteLn(color, "%s%s", r.dumpPrefix.c_str().AsChar(), wxString::FormatV(format, args).c_str().AsChar());
-
+	wxString line = r.dumpPrefix + wxString::FormatV(format, args);
 	va_end(args);
+
+	DevCon.WriteLn(color, "%s", line.c_str().AsChar());
+}
+
+void Renderer::DumpContext::LogMatrix(ConsoleColors color, glm::mat4 &matrix) {
+	for (int i = 0; i < 4; i++) {
+		glm::vec4 &row = matrix[i];
+		Log(color, "    [%d] %f %f %f %f", i, row.x, row.y, row.z, row.w);
+	}
 }
 
 GLuint Shader::compileShader(char *filename, GLuint shader) {

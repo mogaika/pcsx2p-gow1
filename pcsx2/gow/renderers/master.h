@@ -24,7 +24,7 @@ protected:
 
 	stPass currentPass;
 	int step;
-	bool writeDepth;
+	bool maskMirrors;
 	Renderer &r;
 public:
 	Flp Flp;
@@ -35,10 +35,10 @@ public:
 	void Setup();
 	void HookPass(bool isDynamic, u32 renderPass1, u32 renderPass2, u32 renderPass3, u32 renderPass4);
 	void HookRenderStatic(u32 groupIndexStart, u32 groupIndexEnd, u32 binsStructOffset) {
-		TriStripMesh.Render(r, false, writeDepth, groupIndexStart, groupIndexEnd, binsStructOffset);
+		TriStripMesh.Render(r, false, maskMirrors, groupIndexStart, groupIndexEnd, binsStructOffset);
 	}
 	void HookRenderDynamic(u32 groupIndexStart, u32 groupIndexEnd, u32 binsStructOffset) {
-		TriStripMesh.Render(r, true, writeDepth, groupIndexStart, groupIndexEnd, binsStructOffset);
+		TriStripMesh.Render(r, true, maskMirrors, groupIndexStart, groupIndexEnd, binsStructOffset);
 	}
 	void HookRenderFlash(raw::stRenderFlashUIBase *flash) { Flp.Render(r, flash); }
 	void FrameBegin();
@@ -86,12 +86,13 @@ public:
 	render pass 1:2:1:1
 		- normal models, transparent
 	render pass 1:2:0:2
-		- normal models, non transparent?? hero? entity?
+		- normal models, non transparent?? hero? entity? hero, waterfall0**, MAIBlade
 	render pass 1:2:1:2
 	render pass 1:2:2:0
 	render pass 1:2:4:0
 		- water
 		- normal models, additive
+		- lightRays
 
 	render pass 1:3:0:0
 		- normal models, doublelayered? (second layer additive?)

@@ -2,6 +2,8 @@
 
 #include "gow/debugFrame.h"
 #include "gow/gow.h"
+#include "gow/hooker.h"
+
 
 #include "wx/sizer.h"
 
@@ -155,6 +157,7 @@ void DebugTextures::OnUnLoadedTexture(u32 offset) {
 	}
 }
 
+
 DebugRenderer::DebugRenderer(wxWindow *parent):
 	wxPanel(parent) {
     wxBoxSizer *sizerVertical = new wxBoxSizer(wxVERTICAL);
@@ -168,6 +171,10 @@ DebugRenderer::DebugRenderer(wxWindow *parent):
     buttonDumpFrame->Bind(wxEVT_BUTTON, &DebugRenderer::OnButtonDumpFrame, this);
     sizerVertical->Add(buttonDumpFrame, 0, wxALL, 5);
 
+	buttonDumpHashes = new wxButton(this, wxID_ANY, _("Dump hashes"));
+	buttonDumpHashes->Bind(wxEVT_BUTTON, &DebugRenderer::OnButtonDumpHashes, this);
+	sizerVertical->Add(buttonDumpHashes, 0, wxALL, 5);
+
 	checkboxBlueClearColor = new wxCheckBox(this, wxID_ANY, _("Use blue clear color"));
 	checkboxBlueClearColor->Bind(wxEVT_CHECKBOX, &DebugRenderer::OnCheckboxClueClearColor, this);
 	sizerVertical->Add(checkboxBlueClearColor, 0, wxALL, 5);
@@ -179,6 +186,14 @@ void DebugRenderer::OnButtonReloadShaders(wxCommandEvent &event) {
 
 void DebugRenderer::OnButtonDumpFrame(wxCommandEvent &event) {
     core->Renderer()->DumpFrame();
+}
+
+void DebugRenderer::OnButtonDumpHashes(wxCommandEvent &event) {
+	auto f = fopen("hashes.dump.txt", "wb");
+	/*for (auto i = hooker->hashesMap.begin(); i != hooker->hashesMap.end(); ++i) {
+		fprintf(f, "%.8x:%.8x:%s\n", i->first.first, i->first.second, i->second.c_str());
+	}*/
+	fclose(f);
 }
 
 void DebugRenderer::OnCheckboxClueClearColor(wxCommandEvent &event) {
@@ -212,4 +227,23 @@ void DebugWadEvents::OnNewEvent(u16 eventId, u16 param1, u32 param2, char *name)
 	}
     eventsList->Insert(wxString::Format("f:%.8x id:%.4x p1:%.4x p2:%.8x %-16s %s",
 		offsets::uFrameCounter, eventId, param1, param2, name, e), eventsList->GetCount());
+}
+
+
+DebugServers::DebugServers(wxWindow *parent) :
+	wxPanel(parent) {
+	wxBoxSizer *sizerVertical = new wxBoxSizer(wxVERTICAL);
+	this->SetSizer(sizerVertical);
+
+	wxTreeCtrl *treeServers = new wxTreeCtrl(this, wxID_ANY);
+	sizerVertical->Add(treeServers, 1, wxALL | wxEXPAND);
+}
+
+void DebugServers::UpdateServerList() {
+	treeServers->DeleteAllItems();
+
+	u32 pRootServer = rmem<u32>(0x32E848);
+
+
+
 }

@@ -48,7 +48,8 @@ protected:
 			r.dumpPrefix = r.dumpPrefix.Append(suffix).Append(": ");
 		};
 		~DumpContext() { r.dumpPrefix = savedPrefix; };
-		void Log(ConsoleColors color, char *format, ...);
+		void Log(ConsoleColors color, const char *format, ...);
+		void LogMatrix(ConsoleColors color, glm::mat4 &matrix);
 	};
 public:
 	Renderer(Window *window);
@@ -61,6 +62,7 @@ public:
 	void Setup();
     void ReloadShaders() { reloadShadersRequest = true; };
     void DumpFrame() { dumpNextFrame = true; }
+	bool IsDumpingFrame() { return dumpFrame; }
 	DumpContext LogDumpPush(char *suffix) { return DumpContext(*this, suffix); }
 	
 	Shader shader_textured_quad;

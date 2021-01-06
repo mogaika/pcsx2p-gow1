@@ -11,12 +11,13 @@ class TexturePreview {
 protected:
     GLuint quad_vbo, quad_vao, quad_ebo;
 	GLuint currentTexture;
+	gow::Renderer &renderer;
 
     void initializeQuad();
 public:
-	TexturePreview();
+	TexturePreview(gow::Renderer &r);
 
-	void Render(class gow::Renderer &r);
+	void Render();
 	void SetTextureGL(GLuint texture) { currentTexture = texture; }
 	void SetTextureTXR(u32 textureKey, u32 imageIndex);
 };

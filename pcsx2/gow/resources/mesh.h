@@ -63,7 +63,12 @@ struct stDmaTag {
 
 	u32 qwc() { return (_tag >> 0) & 0xffff; };
     u8 id() { return (_tag >> 28) & 0x7; };
-    u32 addr(){ return (_tag >> 32) & 0x7FffFFff; };
+    u32 addr() { return (_tag >> 32) & 0x7FffFFff; };
+
+	template <typename T>
+	T *subdatab() { return reinterpret_cast<T *>(pointer_add(this, 0x8)); }
+	template <typename T>
+	T *subdatae() { return reinterpret_cast<T *>(pointer_add(this, 0x10)); }
 };
 static_assert(sizeof(stDmaTag) == 0x8, "stDmaTag size");
 
@@ -210,7 +215,7 @@ protected:
 
 	// returns vif data size
     u32 decompileVifUnpack(raw::stVifTag *vif, stDecomileState& state);
-    void decompileVifProgram(raw::stVifTag *vifStart, raw::stVifTag *vifEnd, dma_program_t &program);
+    void decompileVifProgram(raw::stVifTag *vifStart, raw::stVifTag *vifEnd, dma_program_t &program, stDecomileState &state);
     void decompileDmaProgram(raw::stDmaTag *dmaProgram, dma_program_t &program);
     void decompilePackets();
 public:
@@ -219,7 +224,7 @@ public:
 
 	std::vector<dma_program_t> &GetPrograms() { return arrays; }
 	dma_program_t &GetProgram(u32 instanceId, u32 materialLayer) { return arrays[instanceId  + materialLayer]; }
-	Mesh &getMesh() { return *mesh; }
+	Mesh *getMesh() { return mesh; }
 };
 
 class Mesh {
@@ -233,7 +238,7 @@ public:
     ~Mesh();
 
 	u32 GetAllocatorOffset() { return allocatorOffset; }
-    char *getName() { return name; }
+    const char *getName() { return name; }
 };
 
 class MeshManager {

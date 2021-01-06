@@ -19,12 +19,13 @@ protected:
 		GLuint texYScale;
 		GLuint texOffset;
 		GLuint useJointIndexes;
+		GLuint transparency;
 	} uniforms;
 public:
 	TriStripMesh() {};
 
 	void Setup(Renderer &r);
-	void Render(Renderer &r, bool isDynamic, bool writeDepth, u32 groupIndexStart, u32 groupIndexEnd, u32 binsStructOffset);
+	void Render(Renderer &r, bool isDynamic, bool maskMirrors, u32 groupIndexStart, u32 groupIndexEnd, u32 binsStructOffset);
 
 };
 

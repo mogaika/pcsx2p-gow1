@@ -6,6 +6,8 @@
 #include "gow/resources/txr.h"
 #include "gow/resources/mesh.h"
 
+#include <unordered_map>
+
 namespace gow {
 
 class Core {
