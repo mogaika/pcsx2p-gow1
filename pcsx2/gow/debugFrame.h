@@ -36,6 +36,7 @@ public:
     DebugFrame(wxString title);
 	DebugMemoryMap &GetMemoryMap() { return *tabMemmap; }
     DebugTextures &GetTextures() { return *tabTextures; }
+    DebugRenderer &GetRenderer() { return *tabRenderer; }
     DebugWadEvents &GetWadEvents() { return *tabWadEvents; }
 	// DebugServers &GetServers() { return *DebugServers; }
 };
@@ -78,7 +79,7 @@ protected:
     wxCheckBox *checkboxBlueClearColor;
     wxButton *buttonDumpFrame;
 	wxButton *buttonDumpHashes;
-
+	wxStaticText *labelHashesCount;
 public:
     DebugRenderer(wxWindow *parent);
 
@@ -86,6 +87,7 @@ public:
     void OnButtonReloadShaders(wxCommandEvent &event);
     void OnButtonDumpFrame(wxCommandEvent &event);
 	void OnButtonDumpHashes(wxCommandEvent &event);
+    void UpdateDumpHashesCount(int count);
 };
 
 class DebugWadEvents : public wxPanel {

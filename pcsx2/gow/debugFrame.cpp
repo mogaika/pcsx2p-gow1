@@ -171,6 +171,9 @@ DebugRenderer::DebugRenderer(wxWindow *parent):
     buttonDumpFrame->Bind(wxEVT_BUTTON, &DebugRenderer::OnButtonDumpFrame, this);
     sizerVertical->Add(buttonDumpFrame, 0, wxALL, 5);
 
+	labelHashesCount = new wxStaticText(this, wxID_ANY, _(""));
+    sizerVertical->Add(labelHashesCount, 0, wxALL, 5);
+
 	buttonDumpHashes = new wxButton(this, wxID_ANY, _("Dump hashes"));
 	buttonDumpHashes->Bind(wxEVT_BUTTON, &DebugRenderer::OnButtonDumpHashes, this);
 	sizerVertical->Add(buttonDumpHashes, 0, wxALL, 5);
@@ -190,14 +193,18 @@ void DebugRenderer::OnButtonDumpFrame(wxCommandEvent &event) {
 
 void DebugRenderer::OnButtonDumpHashes(wxCommandEvent &event) {
 	auto f = fopen("hashes.dump.txt", "wb");
-	/*for (auto i = hooker->hashesMap.begin(); i != hooker->hashesMap.end(); ++i) {
+	for (auto i = hooker->hashesMap.begin(); i != hooker->hashesMap.end(); ++i) {
 		fprintf(f, "%.8x:%.8x:%s\n", i->first.first, i->first.second, i->second.c_str());
-	}*/
+	}
 	fclose(f);
 }
 
 void DebugRenderer::OnCheckboxClueClearColor(wxCommandEvent &event) {
 	core->Renderer()->Master.blueClearColor = checkboxBlueClearColor->IsChecked();
+}
+
+void DebugRenderer::UpdateDumpHashesCount(int count) {
+    labelHashesCount->SetLabelText(wxString::Format("hashes: %d", count));
 }
 
 DebugWadEvents::DebugWadEvents(wxWindow *parent):

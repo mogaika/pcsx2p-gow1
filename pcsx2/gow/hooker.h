@@ -21,7 +21,8 @@ public:
     void InitHooks();
 	void BeforeFrame();
 
-	//std::map<std::pair<uint32_t, uint32_t>, std::string> hashesMap;
+	std::map<std::pair<uint32_t, uint32_t>, std::string> hashesMap;
+    std::map<uint32_t, wxString> audioMap;
 };
 
 extern Hooker *hooker;

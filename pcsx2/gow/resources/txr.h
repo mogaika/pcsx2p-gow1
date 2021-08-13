@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unordered_map>
+#include <map>
 #include <GL/GL.h>
 
 #include "gow/utils.h"
@@ -90,7 +90,7 @@ public:
 
 class TextureManager {
 protected:
-	std::unordered_map<u32, Texture*> textures;
+	std::map<u32, Texture*> textures;
 public:
     TextureManager(){};
 

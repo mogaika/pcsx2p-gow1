@@ -103,14 +103,37 @@ void hookHashReturn() {
 	uint32_t h = cpuRegs.GPR.n.a1.UL[0];
 	auto key = std::pair<uint32_t, uint32_t>(h, hookHashInit);
 
-	/*if (hooker->hashesMap.find(key) == hooker->hashesMap.end()) {
+	if (hooker->hashesMap.find(key) == hooker->hashesMap.end()) {
 		std::string s(pmemz<char>(hookHashpStr));
 		if (hookHashIsUpper) {
 			for (auto & c : s) c = toupper(c);
 		}
 
 		hooker->hashesMap.insert({key, s});
-	}*/
+        hooker->DebugFrame().GetRenderer().UpdateDumpHashesCount(hooker->hashesMap.size());
+	}
+}
+
+void hookAddSoundItem() {
+    wxString name = wxString(pmemz<char>(cpuRegs.GPR.n.a1.UL[0]));
+    uint32_t soundRef = cpuRegs.GPR.n.s1.UL[0];
+    //hooker->audioMap.insert({soundRef, name});
+    hooker->audioMap[soundRef] = name;
+    DevCon.WriteLn(L"Added sound %s 0x%x", WX_STR(name), soundRef);
+}
+
+void hookSoundPlay() {
+    wxString name;
+    uint32_t soundRef = cpuRegs.GPR.n.a1.UL[0];
+
+	if (soundRef) {
+        auto iter = hooker->audioMap.find(soundRef);
+        if (iter != hooker->audioMap.end()) {
+			name = iter->second;
+		}
+    }
+
+    DevCon.WriteLn(L"Playing sound %s 0x%x", WX_STR(name), soundRef);
 }
 
 void Hooker::InitHooks() {
@@ -140,6 +163,9 @@ void Hooker::InitHooks() {
 	addHook(0x175774, hookHashReturn);
 	addHook(0x175780, hookHashBegin);
 	addHook(0x1757CC, hookHashReturn);
+
+	addHook(0x172F3C, hookAddSoundItem);
+    addHook(0x170A50, hookSoundPlay);
 
     DevCon.WriteLn("gow hooker initialized");
 }

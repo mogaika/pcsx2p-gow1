@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unordered_map>
+#include <map>
 #include <GL/GL.h>
 
 #include "gow/utils.h"
@@ -202,7 +202,7 @@ protected:
 
 	// key - source packet offset (relative to stMeshObject)
 	// value - gl buffer that stores data on this offset (can be vertex/uv/normal/indexes)
-    std::unordered_map<raw::stVifTag *, GLuint> buffers;
+    std::map<raw::stVifTag *, GLuint> buffers;
 
     // represents dma programs
 	// keys - instance/layer index
@@ -243,7 +243,7 @@ public:
 
 class MeshManager {
 protected:
-	std::unordered_map<u32, Mesh*> meshes;
+	std::map<u32, Mesh*> meshes;
 public:
     MeshManager(){};
 

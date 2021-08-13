@@ -6,23 +6,25 @@ namespace gow {
 
 const u32 __ps2_mem_offset = 0x20000000;
 
-template <typename T> T *pmem(u32 offset) { return (T *)(__ps2_mem_offset + offset); };
-template <typename T> T *pmemz(u32 offset) { return offset ? pmem<T>(offset) : NULL; };
-template <typename T> T rmem(u32 offset) { return *pmem<T>(offset); };
-template <typename T> T &pmemref(u32 offset) { return *pmem<T>(offset); };
+template <typename T> T *pmem(u32 offset) noexcept { return reinterpret_cast <T*>(__ps2_mem_offset + offset); };
+template <typename T> T *pmemz(u32 offset) noexcept { return offset ? pmem<T>(offset) : NULL; };
+template <typename T> T rmem(u32 offset) noexcept { return *pmem<T>(offset); };
+template <typename T> T &pmemref(u32 offset) noexcept { return *pmem<T>(offset); };
 
-template <typename T> T *pmem(GPR_reg reg) { return pmem<T>(reg.UL[0]); };
-template <typename T> T *pmemz(GPR_reg reg) { return pmemz<T>(reg.UL[0]); };
-template <typename T> T rmem(GPR_reg reg) { return *pmem<T>(reg); };
+template <typename T> T *pmem(GPR_reg reg) noexcept { return pmem<T>(reg.UL[0]); };
+template <typename T> T *pmemz(GPR_reg reg) noexcept { return pmemz<T>(reg.UL[0]); };
+template <typename T> T rmem(GPR_reg reg) noexcept { return *pmem<T>(reg); };
 
 
-template <typename T, typename Q> T align_floor(T v, Q amount) { return (v / static_cast<T>(amount)) * static_cast<T>(amount); }
-template <typename T, typename Q> T align_ceil(T v, Q amount) { return align_floor(v + static_cast<T>(amount) - T(1), amount); }
+template <typename T, typename Q> T align_floor(T v, Q amount) noexcept { return (v / static_cast<T>(amount)) * static_cast<T>(amount); }
+template <typename T, typename Q> T align_ceil(T v, Q amount) noexcept { return align_floor(v + static_cast<T>(amount) - T(1), amount); }
 
-template <typename T, typename Q> T *pointer_add(T *p, Q amount) { return (T*)(uintptr_t(p) + uintptr_t(amount)); };
+template <typename T, typename Q> T *pointer_add(T *p, Q amount) noexcept {
+    return reinterpret_cast<T *>(reinterpret_cast<uintptr_t>(p) + static_cast<uintptr_t>(amount));
+};
 
-static inline u32 revmem(u32 ptr) { return ptr - __ps2_mem_offset; }
-static inline u32 revmem(void *ptr) { return revmem((u32)ptr); }
+static inline u32 revmem(u32 ptr) noexcept { return ptr - __ps2_mem_offset; }
+static inline u32 revmem(void *ptr) noexcept { return revmem((u32)ptr); }
 
 typedef u8 gap_t;
 typedef s16 server_id_t;
